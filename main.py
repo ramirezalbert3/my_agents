@@ -3,7 +3,7 @@ import numpy as np
 from gym import logger
 from agent import Agent
 from table_agent import TableAgent
-from runner import decaying_epsilon, run_episode
+from runner import decaying_epsilon, run_episode, run_epoch
 
 from gym.envs.registration import register
 register(
@@ -21,17 +21,12 @@ env.seed(0)
 agent = TableAgent(env.action_space.n, env.observation_space.n)
 
 epochs = 10
-episodes = 1000
+episodes = 500
 
 # train
 for e in range(epochs):
     epsilon = decaying_epsilon(e, epochs)
-    rewards = []
-    for i in range(episodes):
-        rewards.append(run_episode(env, agent, epsilon))
-    logger.info('Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.2}'.format(e,
-                                                                                    epsilon,
-                                                                                    np.mean(rewards)))
+    run_epoch(env, agent, epsilon, e, episodes)
     agent.train()
 
 # demonstrate

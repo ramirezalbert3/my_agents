@@ -1,5 +1,4 @@
 import numpy as np
-from gym import logger
 import pandas as pd
 
 class TableAgent:
@@ -8,31 +7,35 @@ class TableAgent:
         self._alpha = alpha
         self._num_actions = num_actions
         self._num_states = num_states
-        self._q_table = {state: np.zeros(num_actions)
-                         for state in range(num_states)}
-    def act(self, state: tuple, training = True):
-        '''
-        Get either a greedy action if available
-        '''
-        return self._policy(state)
+        self._q_impl = {state: np.zeros(num_actions)
+                        for state in range(num_states)}
+    def act(self, state: tuple):
+        ''' Get either a greedy action '''
+        return self.policy(state)
     
-    def store_observation(self, next_state: tuple, state: tuple, action: int, reward: float, done: bool):
+    def process_observation(self, next_state: tuple, state: tuple, action: int, reward: float, done: bool):
+        ''' Online training performed with observation '''
         new_q = reward
         if not done:
-            new_q += self._gamma*self._v(next_state)
-        self._q_table[state][action] += self._alpha * (new_q - self._q(state)[action])
+            # q = immediate_reward + discounted playing 'perfectly' from now on
+            new_q += self._gamma*self.V(next_state)
+        self._q_impl[state][action] += self._alpha * (new_q - self.Q(state)[action])
     
     def train(self):
+        ''' Training is done on-line '''
         pass
     
-    def _q(self, state):
-        return self._q_table[state]
+    def Q(self, state):
+        ''' value of any taken action in a given state and playing perfectly onwards '''
+        return self._q_impl[state]
     
-    def _policy(self, state):
-        return np.argmax(self._q(state))
+    def policy(self, state):
+        ''' optimal greedy action for a state '''
+        return np.argmax(self.Q(state))
     
-    def _v(self, state):
-        return np.max(self._q(state))
+    def V(self, state):
+        ''' value of being in a given state (and playing perfectly onwards) '''
+        return np.max(self.Q(state))
     
     def print_q_map(self):
-        print(pd.DataFrame(self._q_table))
+        print(pd.DataFrame(self._q_impl))

@@ -10,7 +10,6 @@ python_version = "3.5"
 scikit-learn = "*"
 gym = "*"
 numpy = "*"
-seaborn = "*"
 
 [dev-packages]
 mypy = "*"
