@@ -3,7 +3,7 @@ import numpy as np
 from gym import logger
 from agent import Agent
 from table_agent import TableAgent
-from runner import decaying_epsilon, run_episode, run_epoch
+from runner import linear_decay_epsilon, quadratic_decay_epsilon, run_episode, run_epoch
 
 from gym.envs.registration import register
 register(
@@ -15,17 +15,18 @@ register(
 )
 
 logger.set_level(logger.INFO)
-env = gym.make('Taxi-v2')
+# env = gym.make('Taxi-v2')
+env = gym.make('FrozenLake-v0')
 env.seed(0)
 
-agent = TableAgent(env.action_space.n, env.observation_space.n)
+agent = Agent(env.action_space.n, env.observation_space.n)
 
 epochs = 10
-episodes = 500
+episodes = 100
 
 # train
 for e in range(epochs):
-    epsilon = decaying_epsilon(e, epochs)
+    epsilon = quadratic_decay_epsilon(e, epochs)
     run_epoch(env, agent, epsilon, e, episodes)
     agent.train()
 

@@ -3,8 +3,17 @@ import time
 import numpy as np
 from gym import logger
 
-def decaying_epsilon (e, epochs):
-    return 1 - e / epochs
+def linear_decay_epsilon (e, epochs, min_decay = 0.1):
+    epsilon = 1 - e / epochs
+    if epsilon < min_decay:
+        return min_decay
+    return epsilon
+
+def quadratic_decay_epsilon(e, epochs, min_decay = 0.1):
+    epsilon = linear_decay_epsilon(e, epochs, 0) ** 2
+    if epsilon < min_decay:
+        return min_decay
+    return epsilon
 
 def run_episode(env, agent, epsilon: float, training: bool =True, render: bool =False):
         state = env.reset()

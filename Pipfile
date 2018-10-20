@@ -10,6 +10,7 @@ python_version = "3.5"
 scikit-learn = "*"
 gym = "*"
 numpy = "*"
+tensorflow = "*"
 
 [dev-packages]
 mypy = "*"

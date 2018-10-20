@@ -2,37 +2,47 @@ import time
 import numpy as np
 import pandas as pd
 from gym import logger
-from sklearn.neural_network import MLPRegressor
+import tensorflow as tf
+from tensorflow import keras
 
-# TODO: de-couple and abstract the one_hot encoding
-# should not be 'just part of the agent'
-def one_hot(size, idx):
-    res = np.zeros(size)
-    res[idx] = 1
+def build_dense_network(num_actions: int, num_states: int):
+    model = keras.models.Sequential([
+        keras.layers.Dense(64,
+                           activation='relu',
+                           input_shape=(num_states + num_actions,)), # one-hot encoding
+        keras.layers.Dense(64,
+                           activation='relu'),
+        keras.layers.Dense(32),
+        ])
+    model.compile(optimizer=tf.train.AdamOptimizer(0.01),
+                  etrics=['mae'])  # mean absolute error
+    return model
+
+def one_hot(list_of_pairs):
+    res = None
+    for size, idx in list_of_pairs:
+        if idx >= size:
+            raise RuntimeError('Number of options must be higher
+                than the index for one-hot encoding')
+        e = np.zeros(size)
+        e[idx] = 1
+        if res is None:
+            res = e
+        else:
+            res = np.hstack((res, e))
     return res
-
-def one_hot_states_and_actions(num_states, state, num_actions, action):
-    return np.hstack(
-        (one_hot(num_states, state), one_hot(num_actions, action))
-        )
 
 class Agent:
     '''
-    Attempt to write an agent that uses
-    - gather observations during an epoch
-    - at the end of each epoch, 'partial_fit' state/action pairs with rewards
+    Attempt to write an agent with keras tensorflow API
     '''
     # TODO: change num_states for state_size/shape
     def __init__(self, num_actions: int, num_states: int, gamma: float = 0.99):
         self._gamma = gamma
         self._num_actions = num_actions
         self._num_states = num_states
-        X = np.array([one_hot_states_and_actions(num_states, s, num_actions, a)
-             for s in range(num_states)
-             for a in range(num_actions)])
-        y = np.full(len(X), 0.0)
-        self._q_impl = MLPRegressor(hidden_layer_sizes=[20,20], warm_start=True).fit(X, y)
-        self._observations = ([], [])
+        
+        self._q_impl = build_dense_network(num_actions, num_states)
     
     def act(self, state: tuple):
         ''' Get either a greedy action '''
@@ -42,7 +52,7 @@ class Agent:
         ''' Store observation to train at the end of epoch '''
         X, y = self._observations
         
-        X.append(one_hot_states_and_actions(self._num_states, state, self._num_actions, action))
+        X.append(one_hot([(self._num_states, state), (self._num_actions, action)]))
         
         next_q = reward
         if not done:
@@ -56,18 +66,14 @@ class Agent:
     def train(self):
         ''' after an epoch 're-fit' Q with observations '''
         X, y = self._observations # [(state, action)], [reward]
-        start = time.time()
-        self._q_impl.fit(X, y)
-        end = time.time()
-        logger.debug('\t# Fitting with {} samples took {:.3} seconds'.format(len(X), end-start))
+        self._q_impl.fit(X, y, epochs=5, batch_size=32)
         self._observations = ([], []) # reset observations
     
     def Q(self, state):
         ''' value of any taken action in a given state and playing perfectly onwards '''
-        return [self._q_impl.predict(one_hot_states_and_actions(self._num_states, state,
-                                                                 self._num_actions, action).reshape(1, -1) # single sample reshape
-                                )[0] # returns 'array' of single sample
-                for action in range(self._num_actions)]
+        one_hot_states = [one_hot([(self._num_states, state), (self._num_actions, a)])
+                          for a in self._num_actions]
+        return model.predict(x, batch_size=self._num_actions)
     
     def policy(self, state):
         ''' optimal greedy action for a state '''
