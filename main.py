@@ -1,50 +1,48 @@
 import gym
 import numpy as np
-from gym import wrappers, logger
+from gym import logger
 from agent import Agent
+from table_agent import TableAgent
+from runner import decaying_epsilon, run_episode
+
+from gym.envs.registration import register
+register(
+    id='FrozenLakeNotSlippery-v0',
+    entry_point='gym.envs.toy_text:FrozenLakeEnv',
+    kwargs={'map_name' : '4x4', 'is_slippery': False},
+    max_episode_steps=100,
+    reward_threshold=0.78, # optimum = .8196
+)
 
 logger.set_level(logger.INFO)
-env = gym.make('FrozenLake-v0')
-# env = wrappers.Monitor(env, directory='/tmp/rf', force=True)
+env = gym.make('Taxi-v2')
 env.seed(0)
 
-agent = Agent(env.action_space.n)
+agent = TableAgent(env.action_space.n, env.observation_space.n)
 
-epochs = 20
-episodes = 500
-
-### TODO: MOVE THESE INTO RUNNER
-def decaying_epsilon (e, epochs):
-    return 1-e/epochs
-
-def run_episode(epsilon, train=True):
-        state = env.reset()
-        if not train:
-            env.render()
-        done = False
-        steps = 0
-        total_reward = 0
-        while not done:
-            action = agent.act(epsilon, state)
-            previous_state = state
-            state, reward, done, _ = env.step(action)
-            total_reward += reward
-            if train:
-                agent.store_observation(previous_state, action, reward)
-            else:
-                env.render()
-        return total_reward
-###
+epochs = 10
+episodes = 1000
 
 # train
 for e in range(epochs):
     epsilon = decaying_epsilon(e, epochs)
     rewards = []
     for i in range(episodes):
-        rewards.append(run_episode(epsilon))
-    logger.info('Epoch {}:\tEpsilon = {:.2}\tAverage Reward = {:.2}'.format(e, epsilon, np.mean(rewards)))
+        rewards.append(run_episode(env, agent, epsilon))
+    logger.info('Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.2}'.format(e,
+                                                                                    epsilon,
+                                                                                    np.mean(rewards)))
     agent.train()
 
 # demonstrate
-for i in range(1):
-    run_episode(epsilon, train=False)
+rewards = []
+demonstration = 100
+for i in range(demonstration):
+    rewards.append(run_episode(env, agent, 0, training=False))
+logger.info('Demonstration over {} episodes with average reward/episode = {:.2}'.format(demonstration,
+                                                                                        np.mean(rewards)))
+
+# run_episode(env, agent, 0, training=False, render=True)
+
+# debug
+agent.print_q_map()
