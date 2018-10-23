@@ -27,14 +27,16 @@ def build_dense_network(num_actions: int, num_states: int):
     model = keras.models.Sequential([
         keras.layers.Dense(24,
                            activation='relu',
-                           input_shape=(num_states,)), # one-hot encoding
+                           input_shape=(num_states,),
+                           name='input'), # one-hot encoding
         keras.layers.Dense(24,
                            activation='relu'),
-        keras.layers.Dense(num_actions),
+        keras.layers.Dense(num_actions,
+                           name='output'),
         ])
-    model.compile(optimizer=tf.train.AdamOptimizer(0.0003),
-                  loss='mse',       # mean squared error
-                  metrics=['mae'])  # mean absolute error
+    model.compile(optimizer='adam',
+                  loss='mean_squared_error', # mean squared error
+                  metrics=['mae']) # mean absolute error
 
     return model
 
@@ -49,7 +51,11 @@ class DQNAgent:
         self._num_states = num_states
         self._memory = deque(maxlen=2000)
         
-        self._q_impl = build_dense_network(num_actions, num_states)
+        if num_actions is None or num_states is None:
+            self._q_impl = None
+            logger.debug('Actions or states not supplied, model not built, this should only happen when loading from file')
+        else:
+            self._q_impl = build_dense_network(num_actions, num_states)
 
     def act(self, state: int):
         ''' Get either a greedy action '''
@@ -105,3 +111,22 @@ class DQNAgent:
     def print_q_map(self):
         q_table = pd.DataFrame([self.Q(s) for s in range(self._num_states)]).transpose()
         print(q_table)
+    
+    def save(self, file_path: str = 'dqn_agent.h5'):
+        ''' Save trained agent/model '''
+        if not file_path.endswith('.h5'):
+            file_path += '.h5'
+        logger.info('Saving agent to: ' + file_path)
+        self._q_impl.save(file_path)
+    
+    @staticmethod
+    def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9):
+        logger.info('Loading agent from: ' + file_path)
+        model = keras.models.load_model(file_path)
+        agent = DQNAgent(None, None, gamma=gamma)
+        agent._q_impl = model
+        # pairs are returned with (batch_size=None, size)
+        _, agent._num_actions = model.get_layer(name='output').output_shape
+        _, agent._num_states = model.get_layer(name='input').input_shape
+        return agent
+

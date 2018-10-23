@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 from gym import logger
-from nn_agent import DQNAgent
+from dqn_agent import DQNAgent
 from table_agent import TableAgent
 from runner import linear_decay_epsilon, quadratic_decay_epsilon, constant_decay_epsilon, run_episode, run_epoch
 
@@ -40,4 +40,6 @@ logger.info('Demonstration over {} episodes with average reward/episode = {:.3}'
 # debug
 agent.print_q_map()
 
-# run_episode(env, agent, 0, training=False, render=True)
+run_episode(env, agent, 0, training=False, render=True)
+
+agent.save()
