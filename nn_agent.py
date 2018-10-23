@@ -51,11 +51,11 @@ class DQNAgent:
         
         self._q_impl = build_dense_network(num_actions, num_states)
 
-    def act(self, state: tuple):
+    def act(self, state: int):
         ''' Get either a greedy action '''
         return self.policy(state)
 
-    def process_observation(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
+    def process_observation(self, state: int, action: int, reward: float, next_state: int, done: bool):
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
@@ -79,7 +79,7 @@ class DQNAgent:
             y.append(target_q)
         self._q_impl.fit(np.array(X), np.array(y), batch_size=batch_size, epochs=3,verbose=0)
 
-    def _observation_to_train_data(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
+    def _observation_to_train_data(self, state: int, action: int, reward: float, next_state: int, done: bool):
         ''' get states observations, rewards and action and return X, y for training '''
         target = reward
         if not done:
@@ -89,16 +89,16 @@ class DQNAgent:
         one_hot_state = one_hot(self._num_states, state)
         return one_hot_state, target_q
     
-    def Q(self, state):
+    def Q(self, state: int):
         ''' value of any taken action in a given state and playing perfectly onwards '''
         one_hot_state = one_hot(self._num_states, state)
         return self._q_impl.predict(one_hot_state[np.newaxis])[0]
     
-    def policy(self, state):
+    def policy(self, state: int):
         ''' optimal greedy action for a state '''
         return np.argmax(self.Q(state))
     
-    def V(self, state):
+    def V(self, state: int):
         ''' value of being in a given state (and playing perfectly onwards) '''
         return np.max(self.Q(state))
     

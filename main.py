@@ -16,28 +16,28 @@ register(
 
 logger.set_level(logger.INFO)
 # env = gym.make('Taxi-v2')
-env = gym.make('FrozenLakeNotSlippery-v0')
+env = gym.make('FrozenLake-v0')
 env.seed(0)
 
-agent = DQNAgent(env.action_space.n, env.observation_space.n)
+agent = DQNAgent(env.action_space.n, env.observation_space.n, gamma=0.9)
 
-epochs = 20
-episodes = 300
+epochs = 60
+episodes = 400
 
 # train
 for e in range(epochs):
-    epsilon = constant_decay_epsilon(e, 1, 0.75, 0.01)
+    epsilon = constant_decay_epsilon(e, initial_epsilon=1, decay_rate=0.9, min_epsilon=0.01)
     run_epoch(env, agent, epsilon, e, episodes)
 
 # demonstrate
 rewards = []
 demonstration = 100
 for i in range(demonstration):
-    r, _, _ = run_episode(env, agent, 0, training=False)
+    r, _, _ = run_episode(env, agent, epsilon=0, max_iterations=100, training=False)
     rewards.append(r)
 logger.info('Demonstration over {} episodes with average reward/episode = {:.3}'.format(demonstration,
                                                                                         np.mean(rewards)))
 # debug
 agent.print_q_map()
 
-run_episode(env, agent, 0, training=False, render=True)
+# run_episode(env, agent, 0, training=False, render=True)
