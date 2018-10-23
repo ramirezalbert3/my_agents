@@ -43,7 +43,7 @@ class DQNAgent:
     Attempt to write an agent with keras tensorflow API
     '''
     # TODO: change num_states for state_size/shape
-    def __init__(self, num_actions: int, num_states: int, gamma: float = 0.99):
+    def __init__(self, num_actions: int, num_states: int, gamma: float = 0.9):
         self._gamma = gamma
         self._num_actions = num_actions
         self._num_states = num_states

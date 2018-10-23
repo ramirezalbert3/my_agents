@@ -21,19 +21,19 @@ env.seed(0)
 
 agent = DQNAgent(env.action_space.n, env.observation_space.n)
 
-epochs = 25
-episodes = 400
+epochs = 20
+episodes = 300
 
 # train
 for e in range(epochs):
-    epsilon = constant_decay_epsilon(e, 1, 0.78, 0.01)
+    epsilon = constant_decay_epsilon(e, 1, 0.75, 0.01)
     run_epoch(env, agent, epsilon, e, episodes)
 
 # demonstrate
 rewards = []
 demonstration = 100
 for i in range(demonstration):
-    r, _ = run_episode(env, agent, 0, training=False)
+    r, _, _ = run_episode(env, agent, 0, training=False)
     rewards.append(r)
 logger.info('Demonstration over {} episodes with average reward/episode = {:.3}'.format(demonstration,
                                                                                         np.mean(rewards)))
