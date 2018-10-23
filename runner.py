@@ -3,17 +3,20 @@ import time
 import numpy as np
 from gym import logger
 
-def linear_decay_epsilon (e, epochs, min_decay = 0.1):
-    epsilon = 1 - e / epochs
-    if epsilon < min_decay:
-        return min_decay
-    return epsilon
+def linear_decay_epsilon (iteration: int, max_iterations: int, min_epsilon: float = 0.1):
+    epsilon = 1 - iteration / max_iterations
+    return max(epsilon, min_epsilon)
 
-def quadratic_decay_epsilon(e, epochs, min_decay = 0.1):
-    epsilon = linear_decay_epsilon(e, epochs, 0) ** 2
-    if epsilon < min_decay:
-        return min_decay
-    return epsilon
+def quadratic_decay_epsilon(iteration: int, max_iterations: int, min_epsilon: float = 0.1):
+    epsilon = linear_decay_epsilon(iteration, max_iterations, 0) ** 2
+    return max(epsilon, min_epsilon)
+
+def constant_decay_epsilon(iteration: int,
+                           initial_epsilon: float,
+                           decay_rate: float = 0.995,
+                           min_epsilon: float = 0.05):
+    epsilon = initial_epsilon * decay_rate ** iteration
+    return max(epsilon, min_epsilon)
 
 def run_episode(env, agent, epsilon: float, training: bool =True, render: bool =False):
         state = env.reset()
@@ -30,7 +33,7 @@ def run_episode(env, agent, epsilon: float, training: bool =True, render: bool =
             state, reward, done, _ = env.step(action)
             total_reward += reward
             if training:
-                agent.process_observation(state, previous_state, action, reward, done)
+                agent.process_observation(previous_state, action, reward, state, done)
             else:
                 logger.debug('Choosing {} in state {} for Q-Values: {}'.format(action,
                                                                           previous_state,
@@ -39,6 +42,8 @@ def run_episode(env, agent, epsilon: float, training: bool =True, render: bool =
                 env.render()
             if done:
                 break
+        if training:
+            agent.train()
         return total_reward
 
 def run_epoch(env, agent, epsilon: float, epoch: int, episodes: int):

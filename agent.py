@@ -38,7 +38,7 @@ class Agent:
         ''' Get either a greedy action '''
         return self.policy(state)
     
-    def process_observation(self, next_state: tuple, state: tuple, action: int, reward: float, done: bool):
+    def process_observation(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
         ''' Store observation to train at the end of epoch '''
         X, y = self._observations
         

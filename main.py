@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 from gym import logger
-from agent import Agent
+from nn_agent import DQNAgent
 from table_agent import TableAgent
 from runner import linear_decay_epsilon, quadratic_decay_epsilon, run_episode, run_epoch
 
@@ -16,19 +16,18 @@ register(
 
 logger.set_level(logger.INFO)
 # env = gym.make('Taxi-v2')
-env = gym.make('FrozenLake-v0')
+env = gym.make('FrozenLakeNotSlippery-v0')
 env.seed(0)
 
-agent = Agent(env.action_space.n, env.observation_space.n)
+agent = DQNAgent(env.action_space.n, env.observation_space.n)
 
-epochs = 10
+epochs = 5
 episodes = 100
 
 # train
 for e in range(epochs):
     epsilon = quadratic_decay_epsilon(e, epochs)
     run_epoch(env, agent, epsilon, e, episodes)
-    agent.train()
 
 # demonstrate
 rewards = []

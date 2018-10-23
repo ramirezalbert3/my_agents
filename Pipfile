@@ -11,6 +11,7 @@ scikit-learn = "*"
 gym = "*"
 numpy = "*"
 tensorflow = "*"
+pandas = "*"
 
 [dev-packages]
 mypy = "*"

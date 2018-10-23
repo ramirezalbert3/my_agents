@@ -13,7 +13,7 @@ class TableAgent:
         ''' Get either a greedy action '''
         return self.policy(state)
     
-    def process_observation(self, next_state: tuple, state: tuple, action: int, reward: float, done: bool):
+    def process_observation(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
         ''' Online training performed with observation '''
         new_q = reward
         if not done:
