@@ -3,7 +3,7 @@ import numpy as np
 from gym import logger
 from nn_agent import DQNAgent
 from table_agent import TableAgent
-from runner import linear_decay_epsilon, quadratic_decay_epsilon, run_episode, run_epoch
+from runner import linear_decay_epsilon, quadratic_decay_epsilon, constant_decay_epsilon, run_episode, run_epoch
 
 from gym.envs.registration import register
 register(
@@ -21,23 +21,23 @@ env.seed(0)
 
 agent = DQNAgent(env.action_space.n, env.observation_space.n)
 
-epochs = 5
-episodes = 100
+epochs = 25
+episodes = 400
 
 # train
 for e in range(epochs):
-    epsilon = quadratic_decay_epsilon(e, epochs)
+    epsilon = constant_decay_epsilon(e, 1, 0.78, 0.01)
     run_epoch(env, agent, epsilon, e, episodes)
 
 # demonstrate
 rewards = []
 demonstration = 100
 for i in range(demonstration):
-    rewards.append(run_episode(env, agent, 0, training=False))
-logger.info('Demonstration over {} episodes with average reward/episode = {:.2}'.format(demonstration,
+    r, _ = run_episode(env, agent, 0, training=False)
+    rewards.append(r)
+logger.info('Demonstration over {} episodes with average reward/episode = {:.3}'.format(demonstration,
                                                                                         np.mean(rewards)))
-
-# run_episode(env, agent, 0, training=False, render=True)
-
 # debug
 agent.print_q_map()
+
+run_episode(env, agent, 0, training=False, render=True)

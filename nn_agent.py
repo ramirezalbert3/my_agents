@@ -32,7 +32,7 @@ def build_dense_network(num_actions: int, num_states: int):
                            activation='relu'),
         keras.layers.Dense(num_actions),
         ])
-    model.compile(optimizer=tf.train.AdamOptimizer(0.01),
+    model.compile(optimizer=tf.train.AdamOptimizer(0.0003),
                   loss='mse',       # mean squared error
                   metrics=['mae'])  # mean absolute error
 
@@ -59,21 +59,25 @@ class DQNAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self):
+    def train(self, batch_size=64):
         ''' 're-fit' Q replaying random samples from memory '''
-        batch_size = 32 # TODO
-        if len(self._memory) < batch_size:
-            print('SHOULDNT HAPPEN')
+        if len(self._memory) <= batch_size:
+            logger.debug('Should only happen a few times in the beggining')
             return
         minibatch = random.sample(self._memory, batch_size)
+        X = []
+        y = []
+        # TODO: try to remove this for-loop
+        # we probably want to keep _memory as the records of states/actions/rewards though
         for state, action, reward, next_state, done in minibatch:
             state, target_q = self._observation_to_train_data(state,
                                                               action,
                                                               reward,
                                                               next_state,
                                                               done)
-            # TODO: not using batch_size=32 because we want to update the model in between batches?
-            self._q_impl.fit(state[np.newaxis], target_q[np.newaxis], epochs=1, verbose=0)
+            X.append(state)
+            y.append(target_q)
+        self._q_impl.fit(np.array(X), np.array(y), batch_size=batch_size, epochs=3,verbose=0)
 
     def _observation_to_train_data(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
         ''' get states observations, rewards and action and return X, y for training '''
