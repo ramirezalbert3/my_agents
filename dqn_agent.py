@@ -45,17 +45,20 @@ class DQNAgent:
     Attempt to write an agent with keras tensorflow API
     '''
     # TODO: change num_states for state_size/shape
-    def __init__(self, num_actions: int, num_states: int, gamma: float = 0.9):
+    def __init__(self, num_actions: int, num_states: int, gamma: float = 0.9, pretrained_model: keras.models.Sequential = None):
+        
+        if pretrained_model is not None:
+            self._q_impl = pretrained_model
+            # pairs are returned with (batch_size=None, size)
+            _, num_actions = pretrained_model.get_layer(name='output').output_shape
+            _, num_states = pretrained_model.get_layer(name='input').input_shape
+        else:
+            self._q_impl = build_dense_network(num_actions, num_states)
+        
         self._gamma = gamma
         self._num_actions = num_actions
         self._num_states = num_states
         self._memory = deque(maxlen=2000)
-        
-        if num_actions is None or num_states is None:
-            self._q_impl = None
-            logger.debug('Actions or states not supplied, model not built, this should only happen when loading from file')
-        else:
-            self._q_impl = build_dense_network(num_actions, num_states)
 
     def act(self, state: int):
         ''' Get either a greedy action '''
@@ -123,10 +126,6 @@ class DQNAgent:
     def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9):
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
-        agent = DQNAgent(None, None, gamma=gamma)
-        agent._q_impl = model
-        # pairs are returned with (batch_size=None, size)
-        _, agent._num_actions = model.get_layer(name='output').output_shape
-        _, agent._num_states = model.get_layer(name='input').input_shape
+        agent = DQNAgent(None, None, gamma=gamma, pretrained_model=model)
         return agent
 
