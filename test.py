@@ -5,8 +5,9 @@ from gym import logger
 
 logger.set_level(logger.INFO)
 
-agent = DQNAgent.from_h5()
-env = gym.make('Taxi-v2')
+env_name = 'Taxi-v2' # 'FrozenLake-v0'
+env = gym.make(env_name)
+agent = DQNAgent.from_h5(file_path=env_name+'.h5')
 
 # Render
 # run_episode(env, agent, 0, training=False, render=True)
