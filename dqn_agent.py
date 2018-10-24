@@ -8,11 +8,13 @@ from tensorflow import keras
 
 '''
 # References
-# https://www.tensorflow.org/guide/keras
-# The 2 below basically implement almost the same thing
-# This one implements 2 models for Q target_Q & Q for stability
-# https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
-# https://keon.io/deep-q-learning/
+# 0. https://www.tensorflow.org/guide/keras
+# 1. https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
+# 2. https://keon.io/deep-q-learning/
+#
+# [1] and [2] basically implement the same thing
+# [1] one uses/explains 2 models for Q target_Q & Q for stability
+# [2] implements it in github, but does not explain it in the article
 '''
 
 def one_hot(size, idx):
@@ -27,15 +29,17 @@ def build_dense_network(num_actions: int, num_states: int):
     model = keras.models.Sequential([
         keras.layers.Dense(24,
                            activation='relu',
-                           input_shape=(num_states,),
-                           name='input'), # one-hot encoding
+                           input_shape=(num_states,), # one-hot encoding
+                           name='input'),
         keras.layers.Dense(24,
                            activation='relu'),
         keras.layers.Dense(num_actions,
                            name='output'),
         ])
+    # Using Keras optimizers and not tf because of warnings when saving
+    # tf optimizers apparently need to be recompiled upon loading, theyre not as convenient
     model.compile(optimizer='adam',
-                  loss='mean_squared_error', # mean squared error
+                  loss='mean_squared_error',
                   metrics=['mae']) # mean absolute error
 
     return model
