@@ -1,9 +1,7 @@
 from collections import deque
 import random
 import numpy as np
-import pandas as pd
 from gym import logger
-import tensorflow as tf
 from tensorflow import keras
 
 '''
@@ -17,25 +15,27 @@ from tensorflow import keras
 # [2] implements it in github, but does not explain it in the article
 '''
 
-def one_hot(size, idx):
-    res = np.zeros(size)
-    res[idx] = 1
-    return res
+def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: list = [24, 24]):
+    '''
+    # TODO: optimizer and losses as arguments
+    '''
+    
+    model = keras.models.Sequential()
+    
+    for idx, val in enumerate(hidden_layers):
+        if idx == 0:
+            model.add(keras.layers.Dense(val,
+                                         activation='relu',
+                                         input_shape=state_shape,
+                                         name='input'))
+        else:
+            model.add(keras.layers.Dense(val,
+                                         activation='relu',
+                                         name='hidden_layer_' + str(idx)))
+    
+    model.add(keras.layers.Dense(num_actions,
+                           name='output'))
 
-def build_dense_network(num_actions: int, num_states: int):
-    '''
-    # TODO: hidden_layers and learning rate as arguments
-    '''
-    model = keras.models.Sequential([
-        keras.layers.Dense(24,
-                           activation='relu',
-                           input_shape=(num_states,), # one-hot encoding
-                           name='input'),
-        keras.layers.Dense(24,
-                           activation='relu'),
-        keras.layers.Dense(num_actions,
-                           name='output'),
-        ])
     # Using Keras optimizers and not tf because of warnings when saving
     # tf optimizers apparently need to be recompiled upon loading, theyre not as convenient
     model.compile(optimizer='adam',
@@ -47,21 +47,15 @@ def build_dense_network(num_actions: int, num_states: int):
 class DQNAgent:
     '''
     Attempt to write an agent with keras tensorflow API
+    states need to be properly conditioned for the agent before being used
     '''
-    # TODO: change num_states for state_size/shape
-    def __init__(self, num_actions: int, num_states: int, gamma: float = 0.9, pretrained_model: keras.models.Sequential = None):
-        
+    def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9, pretrained_model: keras.models.Sequential = None):
         if pretrained_model is not None:
             self._q_impl = pretrained_model
-            # pairs are returned with (batch_size=None, size)
-            _, num_actions = pretrained_model.get_layer(name='output').output_shape
-            _, num_states = pretrained_model.get_layer(name='input').input_shape
         else:
-            self._q_impl = build_dense_network(num_actions, num_states)
+            self._q_impl = build_dense_network(num_actions, state_shape)
         
         self._gamma = gamma
-        self._num_actions = num_actions
-        self._num_states = num_states
         self._memory = deque(maxlen=2000)
 
     def act(self, state: int):
@@ -99,13 +93,13 @@ class DQNAgent:
             target += self._gamma * self.V(next_state)
         target_q = self.Q(state)
         target_q[action] = target
-        one_hot_state = one_hot(self._num_states, state)
-        return one_hot_state, target_q
+        return state, target_q
     
     def Q(self, state: int):
         ''' value of any taken action in a given state and playing perfectly onwards '''
-        one_hot_state = one_hot(self._num_states, state)
-        return self._q_impl.predict(one_hot_state[np.newaxis])[0]
+        # TODO: after state-decoupling, get Q and others to work with batches too,
+        #       then, review all these [np.newaxis] and [0]
+        return self._q_impl.predict(state[np.newaxis])[0]
     
     def policy(self, state: int):
         ''' optimal greedy action for a state '''
@@ -114,10 +108,6 @@ class DQNAgent:
     def V(self, state: int):
         ''' value of being in a given state (and playing perfectly onwards) '''
         return np.max(self.Q(state))
-    
-    def print_q_map(self):
-        q_table = pd.DataFrame([self.Q(s) for s in range(self._num_states)]).transpose()
-        print(q_table)
     
     def save(self, file_path: str = 'dqn_agent.h5'):
         ''' Save trained agent/model '''

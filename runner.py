@@ -18,7 +18,7 @@ def constant_decay_epsilon(iteration: int,
     epsilon = initial_epsilon * decay_rate ** iteration
     return max(epsilon, min_epsilon)
 
-def run_episode(env, agent, epsilon: float, max_episode_steps:int = 100, training: bool = True, render: bool = False):
+def run_episode(env, serializer, agent, epsilon: float, max_episode_steps:int = 100, training: bool = True, render: bool = False):
         state = env.reset()
         if render:
             env.render()
@@ -26,18 +26,18 @@ def run_episode(env, agent, epsilon: float, max_episode_steps:int = 100, trainin
         steps = 0
         total_reward = 0
         for step in range(max_episode_steps):
-            action = agent.act(state)
+            action = agent.act(serializer.serialize(state))
             if random.random() < epsilon:
                 action = env.action_space.sample()
             previous_state = state
             state, reward, done, _ = env.step(action)
             total_reward += reward
             if training:
-                agent.process_observation(previous_state, action, reward, state, done)
+                agent.process_observation(serializer.serialize(previous_state), action, reward, serializer.serialize(state), done)
             else:
                 logger.debug('Choosing {} in state {} for Q-Values: {}'.format(action,
                                                                           previous_state,
-                                                                          agent.Q(previous_state)))
+                                                                          agent.Q(serializer.serialize(previous_state))))
             if render:
                 env.render()
             if done:
@@ -46,14 +46,14 @@ def run_episode(env, agent, epsilon: float, max_episode_steps:int = 100, trainin
             agent.train()
         return total_reward, done, step
 
-def run_epoch(env, agent, epsilon: float, epoch: int, episodes: int, max_episode_steps: int = 100, training: bool = True, render: bool = False):
+def run_epoch(env, serializer, agent, epsilon: float, epoch: int, episodes: int, max_episode_steps: int = 100, training: bool = True, render: bool = False):
     # TODO: pass epsilon policy?
     rewards = []
     steps = []
     aborted_episodes = 0
     start = time.time()
     for i in range(episodes):
-        r, done, step = run_episode(env, agent, epsilon, max_episode_steps, training, render)
+        r, done, step = run_episode(env, serializer, agent, epsilon, max_episode_steps, training, render)
         rewards.append(r)
         steps.append(step)
         if not done:
