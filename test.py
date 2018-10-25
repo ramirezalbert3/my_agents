@@ -1,8 +1,8 @@
-from dqn_agent import DQNAgent
-from runner import run_episode, run_epoch
+from agents.dqn_agent import DQNAgent
+from core.runner import run_episode, run_epoch
 import gym
 from gym import logger
-from states import StateSerializer
+from core.states import StateSerializer
 
 logger.set_level(logger.INFO)
 
