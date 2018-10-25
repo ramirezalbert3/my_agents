@@ -9,6 +9,7 @@ class TableAgent:
         self._num_states = num_states
         self._q_impl = {state: np.zeros(num_actions)
                         for state in range(num_states)}
+    
     def act(self, state: tuple):
         ''' Get either a greedy action '''
         return self.policy(state)

@@ -7,7 +7,6 @@ url = "https://pypi.org/simple"
 python_version = "3.5"
 
 [packages]
-scikit-learn = "*"
 gym = "*"
 numpy = "*"
 tensorflow = "*"
