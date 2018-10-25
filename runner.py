@@ -44,7 +44,7 @@ def run_episode(env, serializer, agent, epsilon: float, max_episode_steps:int = 
                 break
         if training:
             agent.train()
-        return total_reward, done, step
+        return total_reward, done, step+1
 
 def run_epoch(env, serializer, agent, epsilon: float, epoch: int, episodes: int, max_episode_steps: int = 100, training: bool = True, render: bool = False):
     # TODO: pass epsilon policy?
@@ -60,8 +60,8 @@ def run_epoch(env, serializer, agent, epsilon: float, epoch: int, episodes: int,
             aborted_episodes += 1
     end = time.time()
     if training:
-        logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.2}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
+        logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
                     end-start, epoch, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
     else:
-        logger.info('({:.3}s)\t==> Demonstration over {} episodes:\tAverage reward/episode = {:.2}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
+        logger.info('({:.3}s)\t==> Demonstration over {} episodes:\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
                     end-start, episodes, np.mean(rewards), np.mean(steps), aborted_episodes))

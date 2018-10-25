@@ -6,15 +6,17 @@ from states import StateSerializer
 
 logger.set_level(logger.INFO)
 
-env_name = 'FrozenLake-v0'
+env_name = 'CartPole-v0'
 env = gym.make(env_name)
+env._max_episode_steps = 500
 
-serializer = StateSerializer.from_num_states(env.observation_space.n)
+serializer = StateSerializer(env.observation_space.shape)
 
+# agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 agent = DQNAgent.from_h5(file_path=env_name+'.h5')
 
 # Render
-# run_episode(env, agent, 0, training=False, render=True)
+run_episode(env, serializer, agent, epsilon=0, max_episode_steps=5000, training=False, render=True)
 
 # Demonstrate
-run_epoch(env, serializer, agent, epsilon=0, epoch=None, episodes=100, max_episode_steps=100, training=False)
+run_epoch(env, serializer, agent, epsilon=0, epoch=None, episodes=100, max_episode_steps=5000, training=False)
