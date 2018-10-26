@@ -3,7 +3,7 @@ import numpy as np
 from gym import logger
 from agents.dqn_agent import DQNAgent
 from core.states import StateSerializer
-from core.runner import constant_decay_epsilon, run_epoch
+from core.runner import constant_decay_epsilon, Runner
 
 logger.set_level(logger.INFO)
 
@@ -20,12 +20,16 @@ agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
 epochs = 20
 episodes = 200
 
-# train
-for e in range(epochs):
-    epsilon = constant_decay_epsilon(e, initial_epsilon=1, decay_rate=0.8, min_epsilon=0.01)
-    run_epoch(env, serializer, agent, epsilon, e, episodes, max_episode_steps=200)
+runner = Runner(env, serializer, agent,
+                epsilon_policy = lambda e: constant_decay_epsilon(e,
+                                                                  initial_epsilon=1,
+                                                                  decay_rate=0.9,
+                                                                  min_epsilon=0.01),
+                max_episode_steps = 200)
+
+history = runner.train(epochs, episodes)
 
 # demonstrate
-run_epoch(env, serializer, agent, epsilon=0, epoch=None, episodes=100, max_episode_steps=200, training=False)
+results = runner.demonstrate(num_episodes=100)
 
 agent.save(env_name)
