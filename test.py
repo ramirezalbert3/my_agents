@@ -4,7 +4,7 @@ import gym
 from gym import logger
 from core.states import StateSerializer
 
-logger.set_level(logger.INFO)
+logger.set_level(logger.DEBUG)
 
 env_name = 'CartPole-v0'
 env = gym.make(env_name)
@@ -12,7 +12,6 @@ env._max_episode_steps = 500
 
 serializer = StateSerializer(env.observation_space.shape)
 
-# agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 agent = DQNAgent.from_h5(file_path=env_name+'.h5')
 
 # Render

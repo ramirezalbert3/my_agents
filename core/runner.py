@@ -36,8 +36,8 @@ def run_episode(env, serializer, agent, epsilon: float, max_episode_steps:int = 
                 agent.process_observation(serializer.serialize(previous_state), action, reward, serializer.serialize(state), done)
             else:
                 logger.debug('Choosing {} in state {} for Q-Values: {}'.format(action,
-                                                                          previous_state,
-                                                                          agent.Q(serializer.serialize(previous_state))))
+                                                                               previous_state,
+                                                                               agent.Q(serializer.serialize(previous_state))))
             if render:
                 env.render()
             if done:

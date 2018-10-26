@@ -12,19 +12,20 @@ env = gym.make(env_name)
 env.seed(0)
 
 serializer = StateSerializer(env.observation_space.shape)
+# serializer = StateSerializer.from_num_states(env.observation_space.n)
 
-# agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
-agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
+agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
+# agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 5
-episodes = 100
+epochs = 20
+episodes = 200
 
 # train
 for e in range(epochs):
-    epsilon = constant_decay_epsilon(e, initial_epsilon=0.1, decay_rate=0.95, min_epsilon=0.01)
-    run_epoch(env, serializer, agent, epsilon, e, episodes, max_episode_steps=1000)
+    epsilon = constant_decay_epsilon(e, initial_epsilon=1, decay_rate=0.8, min_epsilon=0.01)
+    run_epoch(env, serializer, agent, epsilon, e, episodes, max_episode_steps=200)
 
 # demonstrate
-run_epoch(env, serializer, agent, epsilon=0, epoch=None, episodes=100, max_episode_steps=1000, training=False)
+run_epoch(env, serializer, agent, epsilon=0, epoch=None, episodes=100, max_episode_steps=200, training=False)
 
 agent.save(env_name)

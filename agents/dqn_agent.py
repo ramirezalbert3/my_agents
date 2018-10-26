@@ -67,7 +67,7 @@ class DQNAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self, batch_size: int = 64) -> None:
+    def train(self, batch_size: int = 64, epochs: int = 3) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
@@ -75,8 +75,8 @@ class DQNAgent:
         minibatch = random.sample(self._memory, batch_size)
         X = []
         y = []
-        # TODO: try to remove this for-loop
-        # we probably want to keep _memory as the records of states/actions/rewards though
+        # Tried to remove the for loop with zip(*minibatch) and
+        # transforming observations when appending them, it was slower
         for state, action, reward, next_state, done in minibatch:
             state, target_q = self._observation_to_train_data(state,
                                                               action,
@@ -85,7 +85,7 @@ class DQNAgent:
                                                               done)
             X.append(state)
             y.append(target_q)
-        self._q_impl.fit(np.array(X), np.array(y), batch_size=batch_size, epochs=3,verbose=0)
+        self._q_impl.fit(np.array(X), np.array(y), batch_size=batch_size, epochs=epochs,verbose=0)
 
     def _observation_to_train_data(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool) -> Tuple[np.ndarray, list]:
         ''' get states observations, rewards and action and return X, y for training '''
