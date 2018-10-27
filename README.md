@@ -3,6 +3,35 @@ This library attempts to provide a set of utilities to approach reinforcement le
 - Clear and defined responsabilities split between resources
 - Clean and flexible APIs
 
+## Library Diagram
+```
++--------+
+|        |
+| Runner | train()
+|        | demonstrate()
++--------+
+
+
++-----+            +-----------------+              +-------+               +-------+
+|     |   state    |                 | serialize()  |       |               |       |
+| Env +------------> StateSerializer +--------------> Agent +---------------> Model |
+|     |            |                 |              |       |               |       |
++--+--+            +-----------------+              +--+----+               +---^---+
+   |                                                   |                        |
+   |                                                   | act()                  |
+   |                      action                       |                        |
+   <---------------------------------------------------+                        |
+   |                                                   |                        |
+   | step()                                            |                        |
+   |                reward, next_state                 |                        |
+   +--------------------------------------------------->                        |
+                                                       |                        |
+                                                       | process_observation()  |
+                                                       |                        |
+                                                       |        train()         |
+                                                       +------------------------+
+```
+
 ## Core resources
 ### Agents (TODO)
 In charge of implementing a specific RL algorithm such as:
@@ -24,8 +53,7 @@ The algorithm might just be the same, but an environment might require for examp
 API:
 Keras-based API (fit, predict, etc)
 ```
-### Epsilon policies
-TODO
+### Epsilon policies (TODO)
 
 ## Utility resources
 ### State serializers
@@ -41,37 +69,3 @@ API:
 train(), demonstrate(), render(), run_episode(), run_epoch()
 ```
 ### Plotting and history utils (TODO)
-
-# Diagram
-http://asciiflow.com/
-
-```
-+--------+
-|        |
-| Runner | train()
-|        | demonstrate()
-+--------+
-
-
-+-----+            +-----------------+              +-------+              +-------+
-|     |    state   |                 |  serialize() |       |              |       |
-| Env +------------> StateSerializer +------------- > Agent +--------------> Model |
-|     |            |                 |              |       |              |       |
-+--+--+            +-----------------+              +--+----+              +---^---+
-   |                                                   |                       |
-   |                                                   | act()                 |
-   |                      action                       |                       |
-   <---------------------------------------------------+                       |
-   |                                                   |                       |
-   | step()                                            |                       |
-   |                reward, next_state                 |                       |
-   +--------------------------------------------------->                       |
-                                                       |                       |
-                                                       | process_observation() |
-                                                       |                       |
-                                                       |        train()        |
-                                                       +-----------------------+
-```
-
-
-
