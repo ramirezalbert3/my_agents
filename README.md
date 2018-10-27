@@ -4,7 +4,7 @@ This library attempts to provide a set of utilities to approach reinforcement le
 - Clean and flexible APIs
 
 ## Core resources
-### Agents
+### Agents (TODO)
 In charge of implementing a specific RL algorithm such as:
 - DQN (with replay from memory)
 - DDQN
@@ -19,12 +19,12 @@ save/load() # maybe this belongs to the network model?
 ```
 ### Models (TODO)
 The neural network definition should be independent of the algorithm
-The algorithm might just be the same, but an environment might require image pre-processing (convolutional layers)
+The algorithm might just be the same, but an environment might require for example image pre-processing (convolutional layers)
 ```
 # API
 Keras-based API (fit, predict, etc)
 ```
-### Epsilon polciies
+### Epsilon policies
 TODO
 
 ## Utility resources

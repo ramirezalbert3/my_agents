@@ -1,7 +1,7 @@
 import random
 import time
 import numpy as np
-from collections import namedtuple
+import pandas as pd
 from gym import logger
 
 def constant_decay_epsilon(epoch: int,
@@ -12,7 +12,6 @@ def constant_decay_epsilon(epoch: int,
     return max(epsilon, min_epsilon)
 
 class Runner:
-    record = namedtuple('Record', ['time', 'epsilon', 'num_episodes', 'rewards', 'steps', 'aborted_episodes'])
     
     def __init__(self, env, serializer, agent,
                  epsilon_policy = lambda e: constant_decay_epsilon(e),
@@ -22,7 +21,7 @@ class Runner:
         self._agent = agent
         self._epsilon_policy = epsilon_policy
         self._max_episode_steps = max_episode_steps
-        self._history = []
+        self._history = pd.DataFrame(columns=['epsilon', 'reward', 'steps', 'aborted'])
         self._epochs_trained = 0
     
     def train(self, num_epochs: int, num_episodes: int):
@@ -31,7 +30,6 @@ class Runner:
             time, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
             logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
                         time, e, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
-            self._history.append(Runner.record(time, epsilon, num_episodes, rewards, steps, aborted_episodes))
             self._epochs_trained += 1
         return self.history
     
@@ -39,7 +37,7 @@ class Runner:
         time, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
         logger.info('({:.3}s)\t==> Demonstration over {} episodes:\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
                         time, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
-        return Runner.record(time, 0, num_episodes, rewards, steps, aborted_episodes)
+        return (time, np.mean(rewards), np.mean(steps), aborted_episodes)
     
     def render(self):
         total_reward, done, steps = self.run_episode(epsilon=0, training=False, render=True)
@@ -72,6 +70,7 @@ class Runner:
             if done:
                 break
         if training:
+            self._history = self._history.append({'epsilon': epsilon, 'reward': total_reward, 'steps': step+1, 'aborted': not done}, ignore_index=True)
             self._agent.train()
         return total_reward, done, step+1
     
