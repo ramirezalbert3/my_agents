@@ -12,38 +12,44 @@ def constant_decay_epsilon(epoch: int,
     return max(epsilon, min_epsilon)
 
 class Runner:
-    record = namedtuple('Record', ['time', 'num_episodes', 'mean_reward', 'mean_steps', 'aborted_episodes'])
+    record = namedtuple('Record', ['time', 'epsilon', 'num_episodes', 'rewards', 'steps', 'aborted_episodes'])
     
     def __init__(self, env, serializer, agent,
                  epsilon_policy = lambda e: constant_decay_epsilon(e),
-                 max_episode_steps = 200):
+                 max_episode_steps: int = 200):
         self._env = env
         self._serializer = serializer
         self._agent = agent
         self._epsilon_policy = epsilon_policy
         self._max_episode_steps = max_episode_steps
+        self._history = []
+        self._epochs_trained = 0
     
     def train(self, num_epochs: int, num_episodes: int):
-        history = []
         for e in range(num_epochs):
-            epsilon = self._epsilon_policy(e)
-            time, mean_reward, mean_steps, aborted_episodes = self._run_epoch(epsilon, num_episodes, training=True)
+            epsilon = self._epsilon_policy(self._epochs_trained)
+            time, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
             logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
-                        time, e, epsilon, mean_reward, mean_steps, aborted_episodes))
-            history.append(Runner.record(time, num_episodes, mean_reward, mean_steps, aborted_episodes))
-        return history
+                        time, e, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
+            self._history.append(Runner.record(time, epsilon, num_episodes, rewards, steps, aborted_episodes))
+            self._epochs_trained += 1
+        return self.history
     
-    def demonstrate(self, num_episodes):
-        time, mean_reward, mean_steps, aborted_episodes = self._run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
+    def demonstrate(self, num_episodes: int):
+        time, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
         logger.info('({:.3}s)\t==> Demonstration over {} episodes:\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
-                        time, num_episodes, mean_reward, mean_steps, aborted_episodes))
-        return Runner.record(time, num_episodes, mean_reward, mean_steps, aborted_episodes)
+                        time, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
+        return Runner.record(time, 0, num_episodes, rewards, steps, aborted_episodes)
     
     def render(self):
-        total_reward, done, steps = self._run_episode(epsilon=0, training=False, render=True)
+        total_reward, done, steps = self.run_episode(epsilon=0, training=False, render=True)
         return total_reward, done, steps
     
-    def _run_episode(self, epsilon: float, training: bool = True, render: bool = False):
+    @property
+    def history(self):
+        return self._history
+    
+    def run_episode(self, epsilon: float, training: bool = True, render: bool = False):
         state = self._env.reset()
         if render:
             self._env.render()
@@ -69,17 +75,17 @@ class Runner:
             self._agent.train()
         return total_reward, done, step+1
     
-    def _run_epoch(self, epsilon: float, num_episodes: int, training: bool = True, render: bool = False):
+    def run_epoch(self, epsilon: float, num_episodes: int, training: bool = True, render: bool = False):
         rewards = []
         steps = []
         aborted_episodes = 0
         start = time.time()
         for i in range(num_episodes):
-            r, done, step = self._run_episode(epsilon, training, render)
+            r, done, step = self.run_episode(epsilon, training, render)
             rewards.append(r)
             steps.append(step)
             if not done:
                 aborted_episodes += 1
         end = time.time()
         
-        return end-start, np.mean(rewards), np.mean(steps), aborted_episodes
+        return end-start, rewards, steps, aborted_episodes
