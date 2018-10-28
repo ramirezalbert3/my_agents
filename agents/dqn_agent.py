@@ -49,13 +49,14 @@ def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: lis
 
 class DQNAgent:
     '''
-    Attempt to write an agent with keras tensorflow API
+    Attempt to write a basic DQN agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
     # TODO: For now there is no 'dual' between target-Q and Q models as in DQN
             the reason being that we train at the end of each episode, not after each step
             as proposed in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
     '''
-    def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9, pretrained_model: keras.models.Sequential = None) -> None:
+    def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
+                 pretrained_model: keras.models.Sequential = None) -> None:
         if pretrained_model is not None:
             self._q_impl = pretrained_model
         else:
@@ -68,7 +69,8 @@ class DQNAgent:
         ''' Get either a greedy action '''
         return self.policy(state)[0]
 
-    def process_observation(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool) -> None:
+    def process_observation(self, state: np.ndarray, action: int, reward: float,
+                            next_state: np.ndarray, done: bool) -> None:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
