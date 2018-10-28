@@ -93,7 +93,9 @@ class DQNAgent:
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         ''' get states observations, rewards and action and return X, y for training '''
-        assert(len(states) == len(actions) == len(rewards) == len(next_states) == len(dones))
+        assert(states.shape == next_states.shape)
+        assert(actions.shape == rewards.shape == dones.shape)
+        assert(len(states) == len(actions))
         targets = rewards + np.logical_not(dones) * self._gamma * self.V(next_states)
         target_qs = self.Q(states)
         target_qs[np.arange(len(target_qs)), actions] = targets
