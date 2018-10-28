@@ -61,7 +61,7 @@ class DQNAgent:
 
     def act(self, state: np.ndarray) -> int:
         ''' Get either a greedy action '''
-        return self.policy(state)
+        return self.policy(state)[0]
 
     def process_observation(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool) -> None:
         ''' Store observation to train later in batches '''
@@ -73,42 +73,40 @@ class DQNAgent:
             logger.debug('Should only happen a few times in the beggining')
             return
         minibatch = random.sample(self._memory, batch_size)
-        X = []
-        y = []
-        # Tried to remove the for loop with zip(*minibatch) and
-        # transforming observations when appending them, it was slower
-        for state, action, reward, next_state, done in minibatch:
-            state, target_q = self._observation_to_train_data(state,
-                                                              action,
-                                                              reward,
-                                                              next_state,
-                                                              done)
-            X.append(state)
-            y.append(target_q)
-        self._q_impl.fit(np.array(X), np.array(y), batch_size=batch_size, epochs=epochs,verbose=0)
+        
+        states, actions, rewards, next_states, dones = zip(*minibatch)
+        
+        states, target_qs = self._observations_to_train_data(np.array(states),
+                                                             np.array(actions),
+                                                             np.array(rewards),
+                                                             np.array(next_states),
+                                                             np.array(dones))
+        
+        self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs,verbose=0)
 
-    def _observation_to_train_data(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool) -> Tuple[np.ndarray, list]:
+    def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
+                                    next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         ''' get states observations, rewards and action and return X, y for training '''
-        target = reward
-        if not done:
-            target += self._gamma * self.V(next_state)
-        target_q = self.Q(state)
-        target_q[action] = target
-        return state, target_q
+        assert(len(states) == len(actions) == len(rewards) == len(next_states) == len(dones))
+        targets = rewards + np.logical_not(dones) * self._gamma * self.V(next_states)
+        target_qs = self.Q(states)
+        target_qs[np.arange(len(target_qs)), actions] = targets
+        return states, target_qs
     
-    def Q(self, state: np.ndarray) -> np.ndarray:
-        ''' value of any taken action in a given state and playing perfectly onwards '''
-        # TODO: after state-decoupling, get Q and others to work with batches too,
-        #       then, review all these [np.newaxis] and [0]
-        return self._q_impl.predict(state[np.newaxis])[0]
+    def Q(self, states: np.ndarray) -> np.ndarray:
+        ''' value of any taken action in a batch states and playing perfectly onwards '''
+        if len(states.shape) ==  1:
+            # we're evaluating a single example -> make batch_size = 1
+            states = states[np.newaxis]
+        return self._q_impl.predict(states)
     
-    def policy(self, state: np.ndarray) -> int:
-        ''' optimal greedy action for a state '''
-        return np.argmax(self.Q(state))
+    def policy(self, states: np.ndarray) -> int:
+        ''' optimal greedy action for a batch of states '''
+        return np.argmax(self.Q(states), axis=1) # axis=0 is batch axis
     
-    def V(self, state: np.ndarray) -> float:
-        ''' value of being in a given state (and playing perfectly onwards) '''
-        return np.max(self.Q(state))
+    def V(self, states: np.ndarray) -> float:
+        ''' value of being in a batch of states (and playing perfectly onwards) '''
+        return np.max(self.Q(states), axis=1) # axis=0 is batch axis
     
     def save(self, file_path: str = 'dqn_agent.h5') -> None:
         ''' Save trained model to .h5 file'''

@@ -25,11 +25,11 @@ class Runner:
         self._epochs_trained = 0
     
     def train(self, num_epochs: int, num_episodes: int):
-        for e in range(num_epochs):
+        for _ in range(num_epochs):
             epsilon = self._epsilon_policy(self._epochs_trained)
             time, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
             logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.3}\tAverage steps/episode = {:.3}\twith {} aborted episodes'.format(
-                        time, e, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
+                        time, self._epochs_trained, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
             self._epochs_trained += 1
         return self.history
     
