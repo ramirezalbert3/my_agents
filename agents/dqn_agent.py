@@ -97,13 +97,14 @@ class DQNAgent:
         assert(actions.shape == rewards.shape == dones.shape)
         assert(len(states) == len(actions))
         
+        batch_size = len(actions)
         targets = rewards + np.logical_not(dones) * self._gamma * self.V(next_states)
         target_qs = self.Q(states)
-        target_qs[np.arange(len(target_qs)), actions] = targets
+        target_qs[np.arange(batch_size), actions] = targets
         return states, target_qs
     
     def Q(self, states: np.ndarray) -> np.ndarray:
-        ''' value of any taken action in a batch states and playing perfectly onwards '''
+        ''' value of any taken action in a batch of states and playing perfectly onwards '''
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
