@@ -35,11 +35,11 @@ This library attempts to provide a set of utilities to approach reinforcement le
 ## Core resources
 ### Agents (TODO)
 In charge of implementing a specific RL algorithm such as:
-- DQN (with replay from memory)
-- DDQN
-- Distributional DQN
+- DQN (with replay from memory) [Minh 2015: https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf]
+- DDQN [Van Hesselt 2017: https://arxiv.org/pdf/1509.06461.pdf]
+- Distributional DQN [Bellemare 2017: https://arxiv.org/pdf/1707.06887.pdf]
 - Prioritized experience replay DQN
-- 'Rainbow' Agent
+- 'Rainbow' Agent [Hessel 2017: https://arxiv.org/pdf/1710.02298.pdf]
 
 ```
 API:
