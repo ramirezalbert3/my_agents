@@ -72,17 +72,16 @@ class DQNAgent:
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
             return
+        
         minibatch = random.sample(self._memory, batch_size)
-        
         states, actions, rewards, next_states, dones = zip(*minibatch)
-        
         states, target_qs = self._observations_to_train_data(np.array(states),
                                                              np.array(actions),
                                                              np.array(rewards),
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs,verbose=0)
+        self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
