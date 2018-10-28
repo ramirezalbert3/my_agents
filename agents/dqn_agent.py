@@ -10,10 +10,12 @@ from tensorflow import keras
 # 0. https://www.tensorflow.org/guide/keras
 # 1. https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
 # 2. https://keon.io/deep-q-learning/
+# 3. https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
 #
 # [1] and [2] basically implement the same thing
 # [1] one uses/explains 2 models for Q target_Q & Q for stability
 # [2] implements it in github, but does not explain it in the article
+# [3] Minh 2015 is baseline DQN
 '''
 
 def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: list = [24, 24]):
@@ -49,6 +51,9 @@ class DQNAgent:
     '''
     Attempt to write an agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
+    # TODO: For now there is no 'dual' between target-Q and Q models as in DQN
+            the reason being that we train at the end of each episode, not after each step
+            as proposed in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9, pretrained_model: keras.models.Sequential = None) -> None:
         if pretrained_model is not None:
