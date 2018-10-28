@@ -51,9 +51,9 @@ class DQNAgent:
     '''
     Attempt to write a basic DQN agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
-    # TODO: For now there is no 'dual' between target-Q and Q models as in DQN
-            the reason being that we train at the end of each episode, not after each step
-            as proposed in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
+    this agent implements 'dual' between target-Q and Q models as in DQN
+    as proposed in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
+    but requires a change in the Runner algorithm (train after step instead of episode)
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
                  pretrained_model: keras.models.Sequential = None) -> None:
@@ -61,7 +61,10 @@ class DQNAgent:
             self._q_impl = pretrained_model
         else:
             self._q_impl = build_dense_network(num_actions, state_shape)
-        
+        self._target_q_impl = keras.models.Sequential.from_config(self._q_impl.get_config())
+        self.update_target_model()
+        self._target_update_freq = 100
+        self._target_update_count = 0
         self._gamma = gamma
         self._memory = deque(maxlen=2000)
 
@@ -74,7 +77,7 @@ class DQNAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self, batch_size: int = 64, epochs: int = 3) -> None:
+    def train(self, batch_size: int = 32, epochs: int = 1) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
@@ -89,6 +92,14 @@ class DQNAgent:
                                                              np.array(dones))
         
         self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        
+        self._target_update_count += 1
+        if self._target_update_count % self._target_update_freq == 0:
+            self.update_target_model()
+            self._target_update_count = 0
+    
+    def update_target_model(self):
+        self._target_q_impl.set_weights(self._q_impl.get_weights())
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -107,7 +118,7 @@ class DQNAgent:
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
-        return self._q_impl.predict(states)
+        return self._target_q_impl.predict(states)
     
     def policy(self, states: np.ndarray) -> int:
         ''' optimal greedy action for a batch of states '''
