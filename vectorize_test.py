@@ -30,7 +30,6 @@ for i in range(400):
     time1.append(time.time()-start)
     
     start = time.time()
-    res2 = []
     for i in range(y):
         m2[act[i], i, m[i,jj]] += vals[i]
     time2.append(time.time()-start)
