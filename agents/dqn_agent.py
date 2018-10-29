@@ -97,9 +97,10 @@ class DQNAgent:
         assert(actions.shape == rewards.shape == dones.shape)
         assert(len(states) == len(actions))
         
-        batch_size = len(actions)
+        batch_size = len(actions) # TODO: this will fail if not in batches
         targets = rewards + np.logical_not(dones) * self._gamma * self.V(next_states)
         target_qs = self.Q(states)
+        
         target_qs[np.arange(batch_size), actions] = targets
         return states, target_qs
     
