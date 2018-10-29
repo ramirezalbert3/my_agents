@@ -8,7 +8,7 @@ python_version = "3.5"
 
 [packages]
 gym = "*"
-numpy = "*"
+numpy = ">=1.15"
 tensorflow = "*"
 pandas = "*"
 seaborn = "*"
