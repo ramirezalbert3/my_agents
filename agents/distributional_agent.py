@@ -111,14 +111,21 @@ class DistributionalAgent:
         targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_mat # (batch_size, num_atoms)
         bj, m_l, m_u = self._distribution.project_to_distribution(targets)
         
+        # TODO/BUG: Both vectorized versions have the same bug as shown buy vectorize_test.py
+        #           m_l and m_u might point to the same index, in a for-loop the values are
+        #           properly accumulated, not in the vectorized versions
         m_prob = np.zeros((num_actions, batch_size, num_atoms))
         
-        # TODO: vectorize this
-        for i in range(batch_size):
-            m_prob[actions[i], i, m_l[i, np.arange(num_atoms)]] += ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i]
-            m_prob[actions[i], i, m_u[i, np.arange(num_atoms)]] += ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i]
+        t1 = np.zeros((batch_size, num_atoms))
+        v1 = ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))
+        np.put_along_axis(t1, m_l, v1, axis=1)
+        t2 = np.zeros((batch_size, num_atoms))
+        v2 = ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))
+        np.put_along_axis(t2, m_u, v2, axis=1)
         
-        m_prob = np.vsplit(m_prob, num_actions) # split into n_actions-long list
+        m_prob[actions, np.arange(batch_size)] += t1 + t2
+        
+        m_prob = np.vsplit(m_prob, num_actions)  # split into n_actions-long list
         m_prob = [np.squeeze(x) for x in m_prob] # remove 1-dims leftovers, keep as list
         return states, m_prob
     
