@@ -107,17 +107,16 @@ class DistributionalAgent:
         # Vectorization
         rew_mat = np.repeat(rewards, num_atoms).reshape((batch_size, num_atoms), order='C')
         done_mat = np.repeat(dones, num_atoms).reshape((batch_size, num_atoms), order='C')
-        z_dist = np.repeat(self._distribution.z, batch_size).reshape((batch_size, num_atoms), order='F')
-        targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_dist # (batch_size, num_atoms)
+        z_mat = np.repeat(self._distribution.z, batch_size).reshape((batch_size, num_atoms), order='F')
+        targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_mat # (batch_size, num_atoms)
         bj, m_l, m_u = self._distribution.project_to_distribution(targets)
         
         m_prob = np.zeros((num_actions, batch_size, num_atoms))
         
         # TODO: vectorize this
         for i in range(batch_size):
-            for j in range(num_atoms):
-                m_prob[actions[i], i, m_l[i, j]] += ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
-                m_prob[actions[i], i, m_u[i, j]] += ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
+            m_prob[actions[i], i, m_l[i, np.arange(num_atoms)]] += ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i]
+            m_prob[actions[i], i, m_u[i, np.arange(num_atoms)]] += ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i]
         
         m_prob = np.vsplit(m_prob, num_actions) # split into n_actions-long list
         m_prob = [np.squeeze(x) for x in m_prob] # remove 1-dims leftovers, keep as list
