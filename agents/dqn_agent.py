@@ -51,9 +51,11 @@ class DQNAgent:
     '''
     Attempt to write a basic DQN agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
-    # TODO: For now there is no 'dual' between target-Q and Q models as in DQN
-            the reason being that we train at the end of each episode, not after each step
-            as proposed in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
+    NOTE:
+    There is no target-Q and online-Q model-split as in DQN as proposed
+    in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
+    this makes training more unstable but arguably faster and simpler to understand
+    for dual Q-models use the DDQNAgent which is in theory an strict improvement
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
                  pretrained_model: keras.models.Sequential = None) -> None:
@@ -66,7 +68,7 @@ class DQNAgent:
         self._memory = deque(maxlen=2000)
 
     def act(self, state: np.ndarray) -> int:
-        ''' Get either a greedy action '''
+        ''' Get greedy action '''
         return self.policy(state)[0]
 
     def process_observation(self, state: np.ndarray, action: int, reward: float,

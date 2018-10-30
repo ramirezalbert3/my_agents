@@ -42,7 +42,6 @@ class DistributionalAgent:
     
     class Distribution:
         def __init__(self, v_min: float, v_max: float, num_atoms: int):
-            # Distributional parameters
             self.v_min = v_min         # env specific: this is for regular cartpole
             self.v_max = v_max         # env specific: this is for regular cartpole
             self.num_atoms = num_atoms # hyperparameter
@@ -50,7 +49,7 @@ class DistributionalAgent:
             self.z = np.array([v_min + i * self.delta_z for i in range(num_atoms)])
         
         def project_to_distribution(self, values):
-            ''' locate values in distribution Vmin and Vmax'''
+            ''' project values to distribution (Vmin, Vmax, num_atoms)'''
             Tz = np.clip(values, self.v_min, self.v_max)
             bj = (Tz - self.v_min) / self.delta_z
             m_l, m_u = np.floor(bj).astype(int), np.ceil(bj).astype(int)
@@ -70,7 +69,7 @@ class DistributionalAgent:
         self._distribution = DistributionalAgent.Distribution(v_min=v_min, v_max=v_max, num_atoms=num_atoms)
 
     def act(self, state: np.ndarray) -> int:
-        ''' Get either a greedy action '''
+        ''' Get greedy action '''
         return self.policy(state)[0]
 
     def process_observation(self, state: np.ndarray, action: int, reward: float,
