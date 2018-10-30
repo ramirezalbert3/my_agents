@@ -11,7 +11,7 @@ to train every X number of steps instead of:
 - every step as in other articles/implementations
 - at the end of every episode (as was current implementation)
 This is better because:
-- training does not depent on environments with more/less steps per episode
+- training decoupled from env.steps, we can do this because we learn from memory
 - we can tune train frequency which is computationally intensive
 - agents do not to keep track of trained steps, as it is fed to train()
 '''

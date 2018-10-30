@@ -27,6 +27,7 @@ for i in range(5):
                                                                     initial_epsilon=1,
                                                                     decay_rate=0.8,
                                                                     min_epsilon=0.01),
+                    training_period=50,
                     max_episode_steps = 200)
     start = time.time()
     history = runner.train(epochs, episodes)
@@ -43,6 +44,7 @@ for i in range(5):
                                                                     initial_epsilon=1,
                                                                     decay_rate=0.8,
                                                                     min_epsilon=0.01),
+                    training_period=50,
                     max_episode_steps = 200)
     start = time.time()
     history = runner.train(epochs, episodes)

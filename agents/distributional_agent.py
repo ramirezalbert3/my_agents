@@ -12,6 +12,7 @@ from tensorflow import keras
 # 1b. https://www.youtube.com/watch?v=ba_l8IKoMvU
 # 2.  https://flyyufelix.github.io/2017/10/24/distributional-bellman.html
 # 2b. https://github.com/flyyufelix/C51-DDQN-Keras
+# 3. https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
 '''
 
 def build_distributional_network(num_actions: int, state_shape: tuple, num_atoms: int, hidden_layers: list = [24, 24]):
@@ -37,7 +38,7 @@ class DistributionalAgent:
     '''
     Attempt to write Distributional agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
-    this does not implement either the target_Q vs Q or DDQN
+    this implements the target_Q vs online_Q as per [1] and [3]
     '''
     
     class Distribution:
@@ -57,12 +58,18 @@ class DistributionalAgent:
         
 
     def __init__(self, num_actions: int, state_shape: tuple, v_min: float, v_max: float, num_atoms: int = 21,
-                 gamma: float = 0.9, pretrained_model: keras.models.Model = None) -> None:
+                 gamma: float = 0.9, target_update_freq: int = 200,
+                 pretrained_model: keras.models.Model = None) -> None:
         if pretrained_model is not None:
             self._z_impl = pretrained_model
         else:
             self._z_impl = build_distributional_network(num_actions, state_shape, num_atoms)
         
+        # Start target network = to online network
+        self._target_z_impl = keras.models.Model.from_config(self._q_impl.get_config())
+        self._update_target_model()
+        
+        self._target_update_freq = target_update_freq
         self._gamma = gamma
         self._memory = deque(maxlen=2000)
         
@@ -91,8 +98,16 @@ class DistributionalAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        return self._z_impl.fit(states, target_zs, batch_size=batch_size, epochs=epochs, verbose=0)
-
+        result = self._z_impl.fit(states, target_zs, batch_size=batch_size, epochs=epochs, verbose=0)
+        
+        if step_num % self._target_update_freq == 0:
+            self._update_target_model()
+        
+        return result
+    
+    def _update_target_model(self):
+        self._target_z_impl.set_weights(self._z_impl.get_weights())
+        
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         ''' get states observations, rewards and action and return X, y for training '''
@@ -128,7 +143,7 @@ class DistributionalAgent:
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
-        return np.array(self._z_impl.predict(states)) # (num_actions, batch_size, num_atoms)
+        return np.array(self._target_z_impl.predict(states)) # (num_actions, batch_size, num_atoms)
     
     def Q(self, states: np.ndarray) -> np.ndarray:
         ''' value of any taken action in a batch of states and playing perfectly onwards '''
@@ -151,7 +166,7 @@ class DistributionalAgent:
         return np.max(self.Q(states), axis=1) # axis=0 is batch axis
     
     def save(self, file_path: str = 'dqn_agent.h5') -> None:
-        ''' Save trained model to .h5 file'''
+        ''' Save online trained model to .h5 file'''
         if not file_path.endswith('.h5'):
             file_path += '.h5'
         logger.info('Saving agent to: ' + file_path)

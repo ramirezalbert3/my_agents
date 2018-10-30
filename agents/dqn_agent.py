@@ -11,11 +11,13 @@ from tensorflow import keras
 # 1. https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
 # 2. https://keon.io/deep-q-learning/
 # 3. https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
+# 4. https://arxiv.org/pdf/1509.06461.pdf
 #
 # [1] and [2] basically implement the same thing
 # [1] one uses/explains 2 models for Q target_Q & Q for stability
 # [2] implements it in github, but does not explain it in the article
 # [3] Minh 2015 is baseline DQN
+# [4] Van Hasselt 2015, clarifies target/online networks
 '''
 
 def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: list = [24, 24]):
@@ -51,19 +53,25 @@ class DQNAgent:
     '''
     Attempt to write a basic DQN agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
-    NOTE:
-    There is no target-Q and online-Q model-split as in DQN as proposed
+    Implementing experience replay and online-Q model-split as in DQN as proposed
     in [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
-    this makes training more unstable but arguably faster and simpler to understand
-    for dual Q-models use the DDQNAgent which is in theory an strict improvement
+    Target network is used for all evaluations/decisions
+    Online network is trained only
+    DDQN however is a strict improvement of DQN according to these articles
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
+                 target_update_freq: int = 200,
                  pretrained_model: keras.models.Sequential = None) -> None:
         if pretrained_model is not None:
             self._q_impl = pretrained_model
         else:
             self._q_impl = build_dense_network(num_actions, state_shape)
         
+        # Start target network = to online network
+        self._target_q_impl = keras.models.Sequential.from_config(self._q_impl.get_config())
+        self._update_target_model()
+        
+        self._target_update_freq = target_update_freq
         self._gamma = gamma
         self._memory = deque(maxlen=2000)
 
@@ -90,7 +98,15 @@ class DQNAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        return self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        result = self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        
+        if step_num % self._target_update_freq == 0:
+            self._update_target_model()
+        
+        return result
+    
+    def _update_target_model(self):
+        self._target_q_impl.set_weights(self._q_impl.get_weights())
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -111,7 +127,9 @@ class DQNAgent:
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
-        return self._q_impl.predict(states)
+        
+        # This should always happen according to [3] and [4]
+        return self._target_q_impl.predict(states)
     
     def policy(self, states: np.ndarray) -> int:
         ''' optimal greedy action for a batch of states '''
@@ -122,7 +140,7 @@ class DQNAgent:
         return np.max(self.Q(states), axis=1) # axis=0 is batch axis
     
     def save(self, file_path: str = 'dqn_agent.h5') -> None:
-        ''' Save trained model to .h5 file'''
+        ''' Save online trained model to .h5 file'''
         if not file_path.endswith('.h5'):
             file_path += '.h5'
         logger.info('Saving agent to: ' + file_path)

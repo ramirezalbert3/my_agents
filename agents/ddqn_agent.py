@@ -55,7 +55,8 @@ class DDQNAgent:
     states need to be properly conditioned for the agent before being used
     this agent implements DDQN as per [4. Van Hasselt 2015] which is an improvement
     of [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
-    by using the online network for greedy policy, but target network to evaluate its value
+    Target network is used for evaluations of state/action values
+    Online network is trained and used for greedy policy decisions
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
                  target_update_freq: int = 200,
@@ -82,7 +83,7 @@ class DDQNAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self, step_num: int, batch_size: int = 64, epochs: int = 1) -> None:
+    def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
@@ -113,13 +114,15 @@ class DDQNAgent:
         assert(actions.shape == rewards.shape == dones.shape)
         assert(len(states) == len(actions))
         
+        batch_size = len(actions) # TODO: this will fail if not in batches
         targets = rewards + np.logical_not(dones) * self._gamma * self.V(next_states, use_target=True)
         target_qs = self.Q(states, use_target=False)
-        target_qs[np.arange(len(target_qs)), actions] = targets
+        
+        target_qs[np.arange(batch_size), actions] = targets
         return states, target_qs
     
     def Q(self, states: np.ndarray, use_target: bool = False) -> np.ndarray:
-        ''' value of any taken action in a batch states and playing perfectly onwards '''
+        ''' value of any taken action in a batch of states and playing perfectly onwards '''
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
