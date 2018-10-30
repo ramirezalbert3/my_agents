@@ -77,7 +77,7 @@ class DistributionalAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self, batch_size: int = 64, epochs: int = 3) -> None:
+    def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')

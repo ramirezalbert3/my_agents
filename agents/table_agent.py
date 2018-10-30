@@ -22,7 +22,7 @@ class TableAgent:
             new_q += self._gamma*self.V(next_state)
         self._q_impl[state][action] += self._alpha * (new_q - self.Q(state)[action])
     
-    def train(self):
+    def train(self, step_num: int):
         ''' Training is done on-line '''
         pass
     

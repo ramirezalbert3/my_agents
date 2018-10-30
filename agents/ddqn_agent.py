@@ -58,7 +58,7 @@ class DDQNAgent:
     by using the online network for greedy policy, but target network to evaluate its value
     '''
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
-                 target_update_freq: int = 10,
+                 target_update_freq: int = 200,
                  pretrained_model: keras.models.Sequential = None) -> None:
         if pretrained_model is not None:
             self._q_impl = pretrained_model
@@ -67,10 +67,9 @@ class DDQNAgent:
         
         # Start target network = to online network
         self._target_q_impl = keras.models.Sequential.from_config(self._q_impl.get_config())
-        self.update_target_model()
+        self._update_target_model()
         
         self._target_update_freq = target_update_freq
-        self._target_update_count = 0
         self._gamma = gamma
         self._memory = deque(maxlen=2000)
 
@@ -83,7 +82,7 @@ class DDQNAgent:
         ''' Store observation to train later in batches '''
         self._memory.append((state, action, reward, next_state, done))
 
-    def train(self, batch_size: int = 64, epochs: int = 1) -> None:
+    def train(self, step_num: int, batch_size: int = 64, epochs: int = 1) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
@@ -97,14 +96,14 @@ class DDQNAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        result = self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
         
-        self._target_update_count += 1
-        if self._target_update_count % self._target_update_freq == 0:
-            self.update_target_model()
-            self._target_update_count = 0
+        if step_num % self._target_update_freq == 0:
+            self._update_target_model()
+        
+        return result
     
-    def update_target_model(self):
+    def _update_target_model(self):
         self._target_q_impl.set_weights(self._q_impl.get_weights())
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,

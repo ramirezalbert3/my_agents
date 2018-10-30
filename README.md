@@ -38,7 +38,7 @@ In charge of implementing a specific RL algorithm such as:
 - DQN (with replay from memory) [Minh 2015: https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf]
 - DDQN [Van Hesselt 2015: https://arxiv.org/pdf/1509.06461.pdf]
 - Distributional DQN [Bellemare 2017: https://arxiv.org/pdf/1707.06887.pdf]
-- Prioritized experience replay DQN
+- Prioritized experience replay DQN [T. Schaul 2015: https://arxiv.org/pdf/1511.05952.pdf]
 - 'Rainbow' Agent [Hessel 2017: https://arxiv.org/pdf/1710.02298.pdf]
 
 ```

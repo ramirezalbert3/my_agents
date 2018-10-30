@@ -2,7 +2,7 @@ import gym
 import numpy as np
 from gym import logger
 from agents.dqn_agent import DQNAgent
-from agents.distributional_agent import DistributionalAgent
+from agents.ddqn_agent import DDQNAgent
 from core.states import StateSerializer
 from core.runner import constant_decay_epsilon, Runner
 from core.visualization import rolling_mean
@@ -17,17 +17,18 @@ serializer = StateSerializer(env.observation_space.shape)
 # serializer = StateSerializer.from_num_states(env.observation_space.n)
 
 # agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
-agent = DistributionalAgent(env.action_space.n, serializer.shape, v_min=0, v_max=100, gamma=0.85)
+agent = DDQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 20
-episodes = 500
+epochs = 15
+episodes = 300
 
 runner = Runner(env, serializer, agent,
                 epsilon_policy = lambda e: constant_decay_epsilon(e,
                                                                   initial_epsilon=1,
                                                                   decay_rate=0.8,
                                                                   min_epsilon=0.01),
+                training_period=50,
                 max_episode_steps = 200)
 
 history = runner.train(epochs, episodes)
@@ -36,6 +37,5 @@ history = runner.train(epochs, episodes)
 results = runner.demonstrate(num_episodes=100)
 
 rolling_mean([history['reward'], history['loss']])
-
 
 agent.save(env_name)
