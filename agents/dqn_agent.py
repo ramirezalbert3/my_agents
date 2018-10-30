@@ -88,7 +88,7 @@ class DQNAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        return self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

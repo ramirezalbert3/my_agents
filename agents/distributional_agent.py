@@ -92,7 +92,7 @@ class DistributionalAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        self._z_impl.fit(states, target_zs, batch_size=batch_size, epochs=epochs, verbose=0)
+        return self._z_impl.fit(states, target_zs, batch_size=batch_size, epochs=epochs, verbose=0)
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -111,20 +111,15 @@ class DistributionalAgent:
         targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_mat # (batch_size, num_atoms)
         bj, m_l, m_u = self._distribution.project_to_distribution(targets)
         
-        # TODO/BUG: Both vectorized versions have the same bug as shown buy vectorize_test.py
-        #           m_l and m_u might point to the same index, in a for-loop the values are
-        #           properly accumulated, not in the vectorized versions
         m_prob = np.zeros((num_actions, batch_size, num_atoms))
         
-        t1 = np.zeros((batch_size, num_atoms))
-        v1 = ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))
-        np.put_along_axis(t1, m_l, v1, axis=1)
-        t2 = np.zeros((batch_size, num_atoms))
-        v2 = ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))
-        np.put_along_axis(t2, m_u, v2, axis=1)
-        
-        m_prob[actions, np.arange(batch_size)] += t1 + t2
-        
+        # TODO: not sure if its possible to vectorize a little bit
+        #       maybe we can vectorize a bit if there are no 'repeated' X (if len(set(X))==len(X))
+        #       X being actions, m_l and m_u --> we can do these computations in a matrix
+        for i in range(batch_size):
+            for j in range(num_atoms):
+                m_prob[actions[i], i, m_l[i, j]] += ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
+                m_prob[actions[i], i, m_u[i, j]] += ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
         m_prob = np.vsplit(m_prob, num_actions)  # split into n_actions-long list
         m_prob = [np.squeeze(x) for x in m_prob] # remove 1-dims leftovers, keep as list
         return states, m_prob

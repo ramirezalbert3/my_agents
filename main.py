@@ -17,11 +17,11 @@ serializer = StateSerializer(env.observation_space.shape)
 # serializer = StateSerializer.from_num_states(env.observation_space.n)
 
 # agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
-agent = DistributionalAgent(env.action_space.n, serializer.shape, v_min=0, v_max=200, gamma=0.85)
+agent = DistributionalAgent(env.action_space.n, serializer.shape, v_min=0, v_max=100, gamma=0.85)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 10
-episodes = 300
+epochs = 20
+episodes = 500
 
 runner = Runner(env, serializer, agent,
                 epsilon_policy = lambda e: constant_decay_epsilon(e,
@@ -35,6 +35,7 @@ history = runner.train(epochs, episodes)
 # demonstrate
 results = runner.demonstrate(num_episodes=100)
 
-rolling_mean(history)
+rolling_mean([history['reward'], history['loss']])
+
 
 agent.save(env_name)

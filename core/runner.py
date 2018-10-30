@@ -21,7 +21,7 @@ class Runner:
         self._agent = agent
         self._epsilon_policy = epsilon_policy
         self._max_episode_steps = max_episode_steps
-        self._history = pd.DataFrame(columns=['epsilon', 'reward', 'steps', 'aborted'])
+        self._history = pd.DataFrame(columns=['epsilon', 'reward', 'steps', 'aborted', 'loss'])
         self._epochs_trained = 0
     
     def train(self, num_epochs: int, num_episodes: int):
@@ -70,8 +70,14 @@ class Runner:
             if done:
                 break
         if training:
-            self._history = self._history.append({'epsilon': epsilon, 'reward': total_reward, 'steps': step+1, 'aborted': not done}, ignore_index=True)
-            self._agent.train()
+            h = self._agent.train()
+            if h is not None: # TODO
+                self._history = self._history.append({'epsilon': epsilon,
+                                                      'reward': total_reward,
+                                                      'steps': step+1,
+                                                      'aborted': not done,
+                                                      'loss': np.mean(h.history['loss'])}, # mean across num_epochs of fitting
+                                                    ignore_index=True)
         return total_reward, done, step+1
     
     def run_epoch(self, epsilon: float, num_episodes: int, training: bool = True, render: bool = False):
