@@ -39,6 +39,17 @@ class Runner:
         self._train_period = training_period
         self._train_steps = 0
     
+    def warm_up(self, num_steps: int = 128):
+        ''' "warm-up" agents by initially populating memories with random actions '''
+        state = self._env.reset()
+        for s in range(num_steps):
+                action = self._env.action_space.sample()
+                previous_state = state
+                state, reward, done, _ = self._env.step(action)
+                self._agent.process_observation(self._serializer.serialize(previous_state), action, reward, self._serializer.serialize(state), done)
+                if done:
+                    state = self._env.reset()
+    
     def train(self, num_epochs: int, num_episodes: int):
         for _ in range(num_epochs):
             epsilon = self._epsilon_policy(self._epochs_trained)

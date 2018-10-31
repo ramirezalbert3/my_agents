@@ -87,7 +87,7 @@ class DistributionalAgent:
     def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
-            logger.debug('Should only happen a few times in the beggining')
+            logger.warning('Cant train on an empty memory, warm-up the agent!')
             return
         
         minibatch = random.sample(self._memory, batch_size)

@@ -22,17 +22,18 @@ serializer = StateSerializer(env.observation_space.shape)
 agent = PrioritizedDDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 10
-episodes = 200
+epochs = 20
+episodes = 400
 
 runner = Runner(env, serializer, agent,
                 epsilon_policy = lambda e: constant_decay_epsilon(e,
                                                                   initial_epsilon=1,
-                                                                  decay_rate=0.75,
+                                                                  decay_rate=0.85,
                                                                   min_epsilon=0.01),
                 training_period=50,
                 max_episode_steps = 200)
 
+runner.warm_up()
 history = runner.train(epochs, episodes)
 
 # demonstrate
