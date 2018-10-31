@@ -15,3 +15,4 @@ seaborn = "*"
 
 [dev-packages]
 mypy = "*"
+yappi = "*"

@@ -8,6 +8,11 @@ from core.states import StateSerializer
 from core.runner import constant_decay_epsilon, Runner
 from core.visualization import rolling_mean
 
+try:
+    import yappi
+except:
+    pass
+
 logger.set_level(logger.INFO)
 
 env_name = 'CartPole-v0' # 'CartPole-v0'  'Taxi-v2'    'FrozenLake-v0'
@@ -22,8 +27,15 @@ serializer = StateSerializer(env.observation_space.shape)
 agent = PrioritizedDDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 20
-episodes = 400
+epochs = 10
+episodes = 300
+
+try:
+    yappi.set_clock_type('cpu')
+    yappi.start(builtins=True)
+    logger.info('Profiling training')
+except:
+    pass
 
 runner = Runner(env, serializer, agent,
                 epsilon_policy = lambda e: constant_decay_epsilon(e,
@@ -36,9 +48,16 @@ runner = Runner(env, serializer, agent,
 runner.warm_up()
 history = runner.train(epochs, episodes)
 
+try:
+    stats = yappi.get_func_stats()
+    stats.save('callgrind.out', type='callgrind')
+except:
+    pass
+
 # demonstrate
 results = runner.demonstrate(num_episodes=100)
 
 rolling_mean([history['reward'], history['loss']])
 
 agent.save(env_name)
+
