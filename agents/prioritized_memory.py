@@ -79,26 +79,24 @@ class SumTree:
 class PrioritizedMemory:
     '''
     Prioritized replay memory implemented with a sum-tree according to [4]
-    TODO: priorities are clipped with 'absolute_error_upper'
+    TODO: priorities are clipped with 'max_error'
     hyperparameters defaulted and kept constant according to [3] (Dopamine by Google)
     '''
-    def __init__(self, capacity: int, PER_e: float = 0.01, PER_a: float = 0.6,
-                 PER_b: float = 0.4, absolute_error_upper: float = 1.):
+    def __init__(self, capacity: int, alpha: float = 0.5,
+                 beta: float = 0.5, max_error: float = 1.):
         self.tree = SumTree(capacity)
-        # TODO: rename and re-comment these parameters according to [3]
-        self.PER_e = PER_e  # Hyperparameter that we use to avoid some experiences to have 0 probability of being taken
-        self.PER_a = PER_a  # Hyperparameter that we use to make a tradeoff between taking only exp with high priority and sampling randomly
-        self.PER_b = PER_b  # importance-sampling, from initial value increasing to 1
-        self.absolute_error_upper = absolute_error_upper  # clipped abs error
+        self.alpha = alpha
+        self.beta = beta
+        self.max_error = max_error  # clipped abs error
     
     def store(self, experience):
         ''' Store a new experience in our tree initially with a score of max_prority '''
         max_priority = self.tree.max_priority
         if max_priority == 0:
-            max_priority = self.absolute_error_upper
+            max_priority = self.max_error
         self.tree.add(max_priority, experience)
     
-    def sample(self, batch_size):
+    def sample(self, batch_size: int):
         '''
         1. Sample a minibatch of k size
         2. Divide the range [0, priority_total] k ranges.
@@ -114,7 +112,7 @@ class PrioritizedMemory:
         priority_segment = self.tree.total_priority / batch_size
         
         p_min = self.tree.min_priority / self.tree.total_priority
-        max_weight = (p_min * batch_size) ** (-self.PER_b)
+        max_weight = (p_min * batch_size) ** (-self.beta)
         
         for i in range(batch_size):
             a, b = priority_segment * i, priority_segment * (i + 1)
@@ -123,7 +121,7 @@ class PrioritizedMemory:
             
             sampling_probabilities = priority / self.tree.total_priority
             
-            b_ISWeights[i, 0] = np.power(batch_size * sampling_probabilities, -self.PER_b) / max_weight
+            b_ISWeights[i, 0] = np.power(batch_size * sampling_probabilities, -self.beta) / max_weight
             b_idx[i]= index
             batch.append([data])
         # TODO: double-check (and rework if needed) the returns and their types
@@ -131,9 +129,9 @@ class PrioritizedMemory:
     
     def batch_update(self, tree_idx, abs_errors):
         ''' Update the priorities on the tree '''
-        abs_errors += self.PER_e  # convert to abs and avoid 0
-        clipped_errors = np.minimum(abs_errors, self.absolute_error_upper)
-        ps = np.power(clipped_errors, self.PER_a)
+        abs_errors = np.absolute(abs_errors) + 1e-5 # avoid zero probabilities
+        clipped_errors = np.minimum(abs_errors, self.max_error)
+        ps = np.power(clipped_errors, self.alpha)
 
         for ti, p in zip(tree_idx, ps):
             self.tree.update(ti, p)
