@@ -1,23 +1,16 @@
-from collections import deque
 from typing import Tuple
 import random
 import numpy as np
 from gym import logger
 from tensorflow import keras
+from agents.prioritized_memory import PrioritizedMemory
 
 '''
 # References
-# 0. https://www.tensorflow.org/guide/keras
-# 1. https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
-# 2. https://keon.io/deep-q-learning/
-# 3. https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
-# 4. https://arxiv.org/pdf/1509.06461.pdf
-#
-# [1] and [2] basically implement the same thing
-# [1] one uses/explains 2 models for Q target_Q & Q for stability
-# [2] implements it in github, but does not explain it in the article
-# [3] Minh 2015 is baseline DQN
-# [4] Van Hasselt 2015, proposes using online model for greedy policy and target model for evaluation
+# 1. https://medium.freecodecamp.org/improvements-in-deep-q-learning-dueling-double-dqn-prioritized-experience-replay-and-fixed-58b130cc5682
+# 2. https://github.com/google/dopamine/blob/master/dopamine/agents/rainbow/rainbow_agent.py
+# 3. https://arxiv.org/pdf/1511.05952.pdf (prioritized)
+# 4. https://arxiv.org/pdf/1509.06461.pdf (ddqn)
 '''
 
 def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: list = [24, 24]):
@@ -49,10 +42,10 @@ def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: lis
 
     return model
 
-class DDQNAgent:
+class PrioritizedDDQNAgent:
     '''
-    DDQN as per [4. Van Hasselt 2015] which is an improvement
-    of [3. Minh 2015] 'Algorithm 1: deep Q-learning with experience replay'
+    Prioritized Replay DDQN as per [3. T Schaul 2015] which improves
+    of [4. Van Hasselt 2015], which does not sample uniformly memories fed to training
     Target network is used for evaluations of state/action values
     Online network is trained and used for greedy policy decisions
     states need to be properly conditioned for the agent before being used
@@ -71,7 +64,7 @@ class DDQNAgent:
         
         self._target_update_freq = target_update_freq
         self._gamma = gamma
-        self._memory = deque(maxlen=2000)
+        self._memory = PrioritizedMemory(capacity=2000)
 
     def act(self, state: np.ndarray) -> int:
         ''' Get greedy action '''
@@ -80,15 +73,15 @@ class DDQNAgent:
     def process_observation(self, state: np.ndarray, action: int, reward: float,
                             next_state: np.ndarray, done: bool) -> None:
         ''' Store observation to train later in batches '''
-        self._memory.append((state, action, reward, next_state, done))
+        self._memory.store((state, action, reward, next_state, done))
 
-    def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
+    def train(self, step_num: int, batch_size: int = 64, epochs: int = 1) -> None:
         ''' 're-fit' Q replaying random samples from memory '''
         if len(self._memory) <= batch_size:
             logger.debug('Should only happen a few times in the beggining')
             return
         
-        minibatch = random.sample(self._memory, batch_size)
+        tree_idx, minibatch, sample_weights = self._memory.sample(batch_size)
         states, actions, rewards, next_states, dones = zip(*minibatch)
         states, target_qs = self._observations_to_train_data(np.array(states),
                                                              np.array(actions),
@@ -96,7 +89,10 @@ class DDQNAgent:
                                                              np.array(next_states),
                                                              np.array(dones))
         
-        result = self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0)
+        result = self._q_impl.fit(states, target_qs, batch_size=batch_size, epochs=epochs, verbose=0, sample_weight=sample_weights)
+        
+        loss = result.history['loss'] # TODO: DOUBLE-CHECK THIS
+        self._memory.batch_update(tree_idx, loss)
         
         if step_num % self._target_update_freq == 0:
             self._update_target_model()
@@ -150,11 +146,11 @@ class DDQNAgent:
     
     @staticmethod
     def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9,
-                target_update_freq: int = 200) -> 'DDQNAgent':
+                target_update_freq: int = 200) -> 'PrioritizedDDQNAgent':
         ''' Load trained model from .h5 file'''
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
-        agent = DDQNAgent(None, None, gamma=gamma,
-                          target_update_freq=target_update_freq, pretrained_model=model)
+        agent = PrioritizedDDQNAgent(None, None, gamma=gamma,
+                                     target_update_freq=target_update_freq, pretrained_model=model)
         return agent
 

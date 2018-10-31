@@ -173,10 +173,12 @@ class DistributionalAgent:
         self._z_impl.save(file_path)
     
     @staticmethod
-    def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9) -> 'DQNAgent':
+    def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9,
+                target_update_freq: int = 200) -> 'DQNAgent':
         ''' Load trained model from .h5 file'''
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
-        agent = DQNAgent(None, None, gamma=gamma, pretrained_model=model)
+        agent = DQNAgent(None, None, gamma=gamma,
+                         target_update_freq=target_update_freq, pretrained_model=model)
         return agent
 
