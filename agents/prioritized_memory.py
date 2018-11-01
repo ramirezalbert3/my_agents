@@ -41,28 +41,40 @@ class SumTree:
             tree_index = (tree_index - 1) // 2
             self.tree[tree_index] += change
     
-    def get_leaf(self, v):
+    def get_leaf(self, v: np.ndarray):
         '''
         Get the leaf_index and priority value of a leaf and experience
         associated with an index
         '''
-        parent_index = 0
+        parent_index = np.zeros(v.shape, dtype=int)
+        leaf_index = np.ones(v.shape, dtype=int) * -1 # cant use NaN with int
         
+        done = (leaf_index > 0)
         while True:
             left_child_index = 2 * parent_index + 1
             right_child_index = left_child_index + 1
             
-            if left_child_index >= len(self.tree):
-                # If we reach bottom, end the search
-                leaf_index = parent_index
+            # If we reach bottom, end the search
+            reached_bottom_condition = (left_child_index >= len(self.tree))
+            leaf_index[reached_bottom_condition] = parent_index[reached_bottom_condition]
+
+            # Update done cases for following calculations
+            done = (leaf_index > 0)
+            if np.all(done):
                 break
-            else:
-                # downward search, always search for a higher priority node
-                if v <= self.tree[left_child_index]:
-                    parent_index = left_child_index
-                else:
-                    v -= self.tree[left_child_index]
-                    parent_index = right_child_index
+            left_child_index[done] = 0  # Set it to whatever that can be an index, it won't be used
+            right_child_index[done] = 0 # TODO: This is very brittle
+            
+            # downward search, always search for a higher priority node
+            def and_not_done(condition, done):
+                return np.logical_and(np.logical_not(done), condition)
+            
+            cond1 = (v <= self.tree[left_child_index])
+            parent_index[and_not_done(cond1, done)] = left_child_index[and_not_done(cond1, done)]
+            
+            cond2 = (v > self.tree[left_child_index])
+            parent_index[and_not_done(cond2, done)] = right_child_index[and_not_done(cond2, done)]
+            v[and_not_done(cond2, done)] -= self.tree[left_child_index][and_not_done(cond2, done)]
             
         data_index = leaf_index - self.capacity + 1
         return leaf_index, self.tree[leaf_index], self.data[data_index]
@@ -93,7 +105,7 @@ class PrioritizedMemory:
         self.tree = SumTree(capacity)
         self.alpha = alpha
         self.beta = beta
-        self.max_error = max_error  # clipped abs error
+        self.max_error = max_error  # TODO: this should be tuned. clipped abs error
         self.min_error = 1e-5
     
     def store(self, experience):
@@ -111,27 +123,18 @@ class PrioritizedMemory:
         4. Search in the sumtree, retrieve the experience where priority score corresponds to sample values
         5. IS (importance-sampling) weights for each minibatch element
         '''
-        batch = []
-        
-        tree_idx = np.zeros((batch_size,), dtype=np.int32) # to be re-fed to batch_update
-        sample_weights = np.zeros((batch_size,), dtype=np.float32) # keras: fed to model.fit() as 'sample_weight'
-        
         priority_segment = self.tree.total_priority / batch_size
-        
         p_min = (self.tree.min_priority + self.min_error) / self.tree.total_priority
         max_weight = (p_min * batch_size) ** (-self.beta)
         
-        for i in range(batch_size):
-            a, b = priority_segment * i, priority_segment * (i + 1)
-            value = np.random.uniform(a, b)
-            index, priority, data = self.tree.get_leaf(value)
+        values = np.array([np.random.uniform(priority_segment * i, priority_segment * (i + 1)) for i in range(batch_size)])
+        # TODO: values is ordered, might be usable?
+        tree_idx, priorities, batch = self.tree.get_leaf(values)
+        
+        sampling_probabilities = priorities / self.tree.total_priority
+        
+        sample_weights = np.power(batch_size * sampling_probabilities, -self.beta) / max_weight
             
-            sampling_probabilities = priority / self.tree.total_priority
-            
-            sample_weights[i] = np.power(batch_size * sampling_probabilities, -self.beta) / max_weight
-            tree_idx[i]= index
-            batch.append(data) # appending tuple
-        # TODO: double-check (and rework if needed) the returns and their types
         return tree_idx, batch, sample_weights
     
     def batch_update(self, tree_idx: np.ndarray, abs_errors: np.ndarray):

@@ -27,8 +27,8 @@ serializer = StateSerializer(env.observation_space.shape)
 agent = PrioritizedDDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 10
-episodes = 300
+epochs = 20
+episodes = 600
 
 try:
     yappi.set_clock_type('cpu')
