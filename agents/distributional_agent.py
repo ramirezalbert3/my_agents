@@ -66,7 +66,7 @@ class DistributionalAgent:
             self._z_impl = build_distributional_network(num_actions, state_shape, num_atoms)
         
         # Start target network = to online network
-        self._target_z_impl = keras.models.Model.from_config(self._q_impl.get_config())
+        self._target_z_impl = keras.models.Model.from_config(self._z_impl.get_config())
         self._update_target_model()
         
         self._target_update_freq = target_update_freq
@@ -130,10 +130,13 @@ class DistributionalAgent:
         # TODO: not sure if its possible to vectorize a little bit
         #       maybe we can vectorize a bit if there are no 'repeated' X (if len(set(X))==len(X))
         #       X being actions, m_l and m_u --> we can do these computations in a matrix
+        base = done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]
+        res1 = (m_u - bj) * base
+        res2 = (bj - m_l) * base
         for i in range(batch_size):
             for j in range(num_atoms):
-                m_prob[actions[i], i, m_l[i, j]] += ((m_u - bj) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
-                m_prob[actions[i], i, m_u[i, j]] += ((bj - m_l) * (done_mat + np.logical_not(done_mat) * next_zs[actions, np.arange(batch_size)]))[i, j]
+                m_prob[actions[i], i, m_l[i, j]] += res1[i, j]
+                m_prob[actions[i], i, m_u[i, j]] += res2[i, j]
         m_prob = np.vsplit(m_prob, num_actions)  # split into n_actions-long list
         m_prob = [np.squeeze(x) for x in m_prob] # remove 1-dims leftovers, keep as list
         return states, m_prob
