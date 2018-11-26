@@ -46,7 +46,8 @@ class Runner:
                 action = self._env.action_space.sample()
                 previous_state = state
                 state, reward, done, _ = self._env.step(action)
-                self._agent.process_observation(self._serializer.serialize(previous_state), action, reward, self._serializer.serialize(state), done)
+                self._agent.process_observation(self._serializer.serialize(previous_state), action,
+                                                reward, self._serializer.serialize(state), done)
                 if done:
                     state = self._env.reset()
     
@@ -55,7 +56,8 @@ class Runner:
             epsilon = self._epsilon_policy(self._epochs_trained)
             t, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
             logger.info(
-                '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f} Average steps/episode = {:5.1f} with {} aborted episodes'.format(
+                '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f}'
+                'Average steps/episode = {:5.1f} with {} aborted episodes'.format(
                     t, self._epochs_trained, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
             self._epochs_trained += 1
         return self.history
@@ -63,7 +65,8 @@ class Runner:
     def demonstrate(self, num_episodes: int):
         t, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
         logger.info(
-            '({:5.2f}s) ==> Demonstration over {:3d} episodes: Average reward/episode = {:5.2f} Average steps/episode = {:5.1f} with {} aborted episodes'.format(
+            '({:5.2f}s) ==> Demonstration over {:3d} episodes: Average reward/episode = {:5.2f}'
+            'Average steps/episode = {:5.1f} with {} aborted episodes'.format(
                 t, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
         return t, np.mean(rewards), np.mean(steps), aborted_episodes
     
@@ -89,7 +92,8 @@ class Runner:
             state, reward, done, _ = self._env.step(action)
             total_reward += reward
             if training:
-                self._agent.process_observation(self._serializer.serialize(previous_state), action, reward, self._serializer.serialize(state), done)
+                self._agent.process_observation(self._serializer.serialize(previous_state), action,
+                                                reward, self._serializer.serialize(state), done)
                 self._train_steps += 1
                 if self._train_steps % self._train_period == 0:
                     h = self._agent.train(self._train_steps)
@@ -102,7 +106,7 @@ class Runner:
                                                   'reward': total_reward,
                                                   'steps': step+1,
                                                   'aborted': not done,
-                                                  'loss': np.mean(h.history['loss'])}, # mean across num_epochs of fitting
+                                                  'loss': np.mean(h.history['loss'])},  # mean across num_epochs
                                                 ignore_index=True)
         return total_reward, done, step+1
     
