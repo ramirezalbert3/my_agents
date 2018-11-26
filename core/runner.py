@@ -53,17 +53,19 @@ class Runner:
     def train(self, num_epochs: int, num_episodes: int):
         for _ in range(num_epochs):
             epsilon = self._epsilon_policy(self._epochs_trained)
-            time, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
-            logger.info('({:.3}s)\t==> Epoch {}:\tepsilon = {:.2}\tAverage reward/episode = {:.4}\tAverage steps/episode = {:.4}\twith {} aborted episodes'.format(
-                        time, self._epochs_trained, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
+            t, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
+            logger.info(
+                '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f} Average steps/episode = {:5.1f} with {} aborted episodes'.format(
+                    t, self._epochs_trained, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
             self._epochs_trained += 1
         return self.history
-    
+
     def demonstrate(self, num_episodes: int):
-        time, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
-        logger.info('({:.3}s)\t==> Demonstration over {} episodes:\tAverage reward/episode = {:.4}\tAverage steps/episode = {:.4}\twith {} aborted episodes'.format(
-                        time, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
-        return (time, np.mean(rewards), np.mean(steps), aborted_episodes)
+        t, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
+        logger.info(
+            '({:5.2f}s) ==> Demonstration over {:3d} episodes: Average reward/episode = {:5.2f} Average steps/episode = {:5.1f} with {} aborted episodes'.format(
+                t, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
+        return t, np.mean(rewards), np.mean(steps), aborted_episodes
     
     def render(self):
         total_reward, done, steps = self.run_episode(epsilon=0, training=False, render=True)
