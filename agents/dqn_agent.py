@@ -5,7 +5,7 @@ import numpy as np
 from gym import logger
 from tensorflow import keras
 
-'''
+"""
 # References
 # 0. https://www.tensorflow.org/guide/keras
 # 1. https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
@@ -18,12 +18,12 @@ from tensorflow import keras
 # [2] implements it in github, but does not explain it in the article
 # [3] Minh 2015 is baseline DQN
 # [4] Van Hasselt 2015, clarifies target/online networks
-'''
+"""
 
 def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: list = [24, 24]):
-    '''
+    """
     # TODO: optimizer and losses as arguments
-    '''
+    """
     
     model = keras.models.Sequential()
     
@@ -36,7 +36,7 @@ def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: lis
         else:
             model.add(keras.layers.Dense(val,
                                          activation='relu',
-                                         name='hidden_layer_' + str(idx)))
+                                         name='hidden_layer_{}'.format(idx)))
     
     model.add(keras.layers.Dense(num_actions,
                            name='output'))
@@ -50,7 +50,7 @@ def build_dense_network(num_actions: int, state_shape: tuple, hidden_layers: lis
     return model
 
 class DQNAgent:
-    '''
+    """
     Attempt to write a basic DQN agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
     Implementing experience replay and online-Q model-split as in DQN as proposed
@@ -58,7 +58,7 @@ class DQNAgent:
     Target network is used for all evaluations/decisions
     Online network is trained only
     DDQN however is a strict improvement of DQN according to these articles
-    '''
+    """
     def __init__(self, num_actions: int, state_shape: tuple, gamma: float = 0.9,
                  target_update_freq: int = 200,
                  pretrained_model: keras.models.Sequential = None) -> None:
@@ -76,16 +76,16 @@ class DQNAgent:
         self._memory = deque(maxlen=2000)
 
     def act(self, state: np.ndarray) -> int:
-        ''' Get greedy action '''
+        """ Get greedy action """
         return self.policy(state)[0]
 
     def process_observation(self, state: np.ndarray, action: int, reward: float,
                             next_state: np.ndarray, done: bool) -> None:
-        ''' Store observation to train later in batches '''
+        """ Store observation to train later in batches """
         self._memory.append((state, action, reward, next_state, done))
 
     def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
-        ''' 're-fit' Q replaying random samples from memory '''
+        """ 're-fit' Q replaying random samples from memory """
         if len(self._memory) <= batch_size:
             logger.warning('Cant train on an empty memory, warm-up the agent!')
             return
@@ -110,7 +110,7 @@ class DQNAgent:
 
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        ''' get states observations, rewards and action and return X, y for training '''
+        """ get states observations, rewards and action and return X, y for training """
         assert(states.shape == next_states.shape)
         assert(actions.shape == rewards.shape == dones.shape)
         assert(len(states) == len(actions))
@@ -123,7 +123,7 @@ class DQNAgent:
         return states, target_qs
     
     def Q(self, states: np.ndarray) -> np.ndarray:
-        ''' value of any taken action in a batch of states and playing perfectly onwards '''
+        """ value of any taken action in a batch of states and playing perfectly onwards """
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
@@ -132,15 +132,15 @@ class DQNAgent:
         return self._target_q_impl.predict(states)
     
     def policy(self, states: np.ndarray) -> int:
-        ''' optimal greedy action for a batch of states '''
+        """ optimal greedy action for a batch of states """
         return np.argmax(self.Q(states), axis=1) # axis=0 is batch axis
     
     def V(self, states: np.ndarray) -> float:
-        ''' value of being in a batch of states (and playing perfectly onwards) '''
+        """ value of being in a batch of states (and playing perfectly onwards) """
         return np.max(self.Q(states), axis=1) # axis=0 is batch axis
     
     def save(self, file_path: str = 'dqn_agent.h5') -> None:
-        ''' Save online trained model to .h5 file'''
+        """ Save online trained model to .h5 file"""
         if not file_path.endswith('.h5'):
             file_path += '.h5'
         logger.info('Saving agent to: ' + file_path)
@@ -149,7 +149,7 @@ class DQNAgent:
     @staticmethod
     def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9,
                 target_update_freq: int = 200) -> 'DQNAgent':
-        ''' Load trained model from .h5 file'''
+        """ Load trained model from .h5 file"""
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
         agent = DQNAgent(None, None, gamma=gamma,

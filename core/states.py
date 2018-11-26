@@ -6,13 +6,13 @@ def one_hot(size, idx):
     return res
 
 class StateSerializer:
-    '''
+    """
     Class that handles different types of states for the agent
     # Default:
         For multi-dimensional states, states are fed and handled as-is
     # Non-default use cases (Factory method provided):
         For discrete states, we use one_hot_encoding and num_states
-    '''
+    """
     def __init__(self, state_shape: tuple):
         self._state_shape = state_shape
         self._one_hot = False

@@ -1,5 +1,5 @@
 import numpy as np
-'''
+"""
 # This is basically a clean up of the implementations explained below
 # TODO: actually read through to understand the code
 # 1.  https://medium.freecodecamp.org/improvements-in-deep-q-learning-dueling-double-dqn-prioritized-experience-replay-and-fixed-58b130cc5682
@@ -7,7 +7,7 @@ import numpy as np
 # 2.  https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow/blob/master/contents/5.2_Prioritized_Replay_DQN/RL_brain.py
 # 3.  https://github.com/google/dopamine/blob/master/dopamine/agents/rainbow/rainbow_agent.py
 # 4.  https://arxiv.org/pdf/1511.05952.pdf
-'''
+"""
 
 class SumTree:
     def __init__(self, capacity: int):
@@ -18,7 +18,7 @@ class SumTree:
         self.elements = 0
     
     def add(self, priority, data):
-        ''' Add priority score in the sumtree leaf and add the experience in data'''
+        """ Add priority score in the sumtree leaf and add the experience in data"""
         tree_index = self.data_pointer + self.capacity - 1
         self.data[self.data_pointer] = data
         self.update(tree_index, priority)
@@ -32,7 +32,7 @@ class SumTree:
             self.elements = self.capacity
         
     def update(self, tree_index: int, priority):
-        ''' Update the leaf priority score and propagate the change through tree '''
+        """ Update the leaf priority score and propagate the change through tree """
         change = priority - self.tree[tree_index]
         self.tree[tree_index] = priority
         
@@ -42,10 +42,10 @@ class SumTree:
             self.tree[tree_index] += change
     
     def get_leaf(self, v):
-        '''
+        """
         Get the leaf_index and priority value of a leaf and experience
         associated with an index
-        '''
+        """
         parent_index = 0
         
         while True:
@@ -83,11 +83,11 @@ class SumTree:
         return self.elements
 
 class PrioritizedMemory:
-    '''
+    """
     Prioritized replay memory implemented with a sum-tree according to [4]
     TODO: priorities are clipped with 'max_error'
     hyperparameters defaulted and kept constant according to [3] (Dopamine by Google)
-    '''
+    """
     def __init__(self, capacity: int, alpha: float = 0.5,
                  beta: float = 0.5, max_error: float = 1.):
         self.tree = SumTree(capacity)
@@ -97,20 +97,20 @@ class PrioritizedMemory:
         self.min_error = 1e-5
     
     def store(self, experience):
-        ''' Store a new experience in our tree initially with a score of max_prority '''
+        """ Store a new experience in our tree initially with a score of max_prority """
         max_priority = self.tree.max_priority
         if max_priority == 0:
             max_priority = self.max_error
         self.tree.add(max_priority, experience)
     
     def sample(self, batch_size: int):
-        '''
+        """
         1. Sample a minibatch of k size
         2. Divide the range [0, priority_total] k ranges.
         3. Uniformly sample a value from each range
         4. Search in the sumtree, retrieve the experience where priority score corresponds to sample values
         5. IS (importance-sampling) weights for each minibatch element
-        '''
+        """
         batch = []
         
         tree_idx = np.zeros((batch_size,), dtype=np.int32) # to be re-fed to batch_update
@@ -135,7 +135,7 @@ class PrioritizedMemory:
         return tree_idx, batch, sample_weights
     
     def batch_update(self, tree_idx: np.ndarray, abs_errors: np.ndarray):
-        ''' Update the priorities on the tree '''
+        """ Update the priorities on the tree """
         abs_errors = np.absolute(abs_errors) + self.min_error # avoid zero probabilities
         clipped_errors = np.minimum(abs_errors, self.max_error)
         ps = np.power(clipped_errors, self.alpha)

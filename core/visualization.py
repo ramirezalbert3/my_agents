@@ -1,8 +1,13 @@
+import platform
+if platform.system() == 'Darwin':
+    import matplotlib
+    matplotlib.use('TkAgg')
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 from typing import List
 from math import sqrt, ceil
+
 
 def rolling_mean(history: List[pd.Series], window: int = 100, label = None, axis = None, show: bool = True):
     cols = max(ceil(sqrt(len(history))), 1)

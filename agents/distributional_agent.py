@@ -5,7 +5,7 @@ import numpy as np
 from gym import logger
 from tensorflow import keras
 
-'''
+"""
 # References
 # 0.  https://keras.io/getting-started/functional-api-guide/
 # 1.  https://arxiv.org/abs/1707.06887
@@ -13,18 +13,19 @@ from tensorflow import keras
 # 2.  https://flyyufelix.github.io/2017/10/24/distributional-bellman.html
 # 2b. https://github.com/flyyufelix/C51-DDQN-Keras
 # 3. https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
-'''
+"""
+
 
 def build_distributional_network(num_actions: int, state_shape: tuple, num_atoms: int, hidden_layers: list = [24, 24]):
     inputs = keras.layers.Input(shape=state_shape, name='input') 
     
     for idx, val in enumerate(hidden_layers):
         if idx == 0:
-            hidden = keras.layers.Dense(val, activation='relu', name='hidden_layer_' + str(idx))(inputs)
+            hidden = keras.layers.Dense(val, activation='relu', name='hidden_layer_{}'.format(idx))(inputs)
         else:
-            hidden = keras.layers.Dense(val, activation='relu', name='hidden_layer_' + str(idx))(hidden)
+            hidden = keras.layers.Dense(val, activation='relu', name='hidden_layer_{}'.format(idx))(hidden)
 
-    distributions = [keras.layers.Dense(num_atoms, activation='softmax', name='output_' + str(idx))(hidden)
+    distributions = [keras.layers.Dense(num_atoms, activation='softmax', name='output_{}'.format(idx))(hidden)
                      for idx in range(num_actions)]
 
     model = keras.Model(inputs=inputs, outputs=distributions)
@@ -34,30 +35,31 @@ def build_distributional_network(num_actions: int, state_shape: tuple, num_atoms
 
     return model
 
+
 class DistributionalAgent:
-    '''
+    """
     Attempt to write Distributional agent with keras tensorflow API
     states need to be properly conditioned for the agent before being used
     this implements the target_Q vs online_Q as per [1] and [3]
-    '''
+    """
     
     class Distribution:
         def __init__(self, v_min: float, v_max: float, num_atoms: int):
-            self.v_min = v_min         # env specific: this is for regular cartpole
-            self.v_max = v_max         # env specific: this is for regular cartpole
-            self.num_atoms = num_atoms # hyperparameter
+            self.v_min = v_min
+            self.v_max = v_max
+            self.num_atoms = num_atoms
             self.delta_z = (v_max - v_min) / float(num_atoms-1)
             self.z = np.array([v_min + i * self.delta_z for i in range(num_atoms)])
         
         def project_to_distribution(self, values):
-            ''' project values to distribution (Vmin, Vmax, num_atoms)'''
+            """ project values to distribution (Vmin, Vmax, num_atoms) """
             Tz = np.clip(values, self.v_min, self.v_max)
             bj = (Tz - self.v_min) / self.delta_z
             m_l, m_u = np.floor(bj).astype(int), np.ceil(bj).astype(int)
             return bj, m_l, m_u
-        
 
-    def __init__(self, num_actions: int, state_shape: tuple, v_min: float, v_max: float, num_atoms: int = 21,
+    def __init__(self, num_actions: int, state_shape: tuple,
+                 v_min: float, v_max: float, num_atoms: int = 21,
                  gamma: float = 0.9, target_update_freq: int = 200,
                  pretrained_model: keras.models.Model = None) -> None:
         if pretrained_model is not None:
@@ -76,16 +78,16 @@ class DistributionalAgent:
         self._distribution = DistributionalAgent.Distribution(v_min=v_min, v_max=v_max, num_atoms=num_atoms)
 
     def act(self, state: np.ndarray) -> int:
-        ''' Get greedy action '''
+        """ Get greedy action """
         return self.policy(state)[0]
 
     def process_observation(self, state: np.ndarray, action: int, reward: float,
                             next_state: np.ndarray, done: bool) -> None:
-        ''' Store observation to train later in batches '''
+        """ Store observation to train later in batches """
         self._memory.append((state, action, reward, next_state, done))
 
     def train(self, step_num: int, batch_size: int = 64, epochs: int = 3) -> None:
-        ''' 're-fit' Q replaying random samples from memory '''
+        """ 're-fit' Q replaying random samples from memory """
         if len(self._memory) <= batch_size:
             logger.warning('Cant train on an empty memory, warm-up the agent!')
             return
@@ -110,7 +112,7 @@ class DistributionalAgent:
         
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        ''' get states observations, rewards and action and return X, y for training '''
+        """ get states observations, rewards and action and return X, y for training """
         assert(states.shape == next_states.shape)
         assert(actions.shape == rewards.shape == dones.shape)
         assert(len(states) == len(actions))
@@ -142,14 +144,14 @@ class DistributionalAgent:
         return states, m_prob
     
     def Z(self, states: np.ndarray) -> np.ndarray:
-        ''' distributions for actions in a batch of states '''
+        """ distributions for actions in a batch of states """
         if len(states.shape) ==  1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
         return np.array(self._target_z_impl.predict(states)) # (num_actions, batch_size, num_atoms)
     
     def Q(self, states: np.ndarray) -> np.ndarray:
-        ''' value of any taken action in a batch of states and playing perfectly onwards '''
+        """ value of any taken action in a batch of states and playing perfectly onwards """
         z = self.Z(states)
         if len(states.shape) ==  1:
             # TODO: should not be necessary to run twice
@@ -161,27 +163,33 @@ class DistributionalAgent:
         return q
     
     def policy(self, states: np.ndarray) -> int:
-        ''' optimal greedy action for a batch of states '''
+        """ optimal greedy action for a batch of states """
         return np.argmax(self.Q(states), axis=1) # axis=0 is batch axis
     
     def V(self, states: np.ndarray) -> float:
-        ''' value of being in a batch of states (and playing perfectly onwards) '''
+        """ value of being in a batch of states (and playing perfectly onwards) """
         return np.max(self.Q(states), axis=1) # axis=0 is batch axis
-    
-    def save(self, file_path: str = 'dqn_agent.h5') -> None:
-        ''' Save online trained model to .h5 file'''
+
+    def save(self, file_path: str = 'distributional_agent.h5') -> None:
+        """ Save online trained model to .h5 file"""
         if not file_path.endswith('.h5'):
             file_path += '.h5'
         logger.info('Saving agent to: ' + file_path)
         self._z_impl.save(file_path)
     
     @staticmethod
-    def from_h5(file_path: str = 'dqn_agent.h5', gamma: float = 0.9,
-                target_update_freq: int = 200) -> 'DQNAgent':
-        ''' Load trained model from .h5 file'''
+    def from_h5(file_path: str = 'dqn_agent.h5',
+                v_min: float = 0, v_max: float = 1,
+                gamma: float = 0.9, target_update_freq: int = 200) -> 'DQNAgent':
+        """ Load trained model from .h5 file """
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
-        agent = DQNAgent(None, None, gamma=gamma,
-                         target_update_freq=target_update_freq, pretrained_model=model)
+        output_shape = model.output_shape
+        assert(len(set(output_shape)) == 1)  # assert all n_actions output shapes are equal, thus len of the set is 1
+        num_atoms = output_shape[0][1]       # all outputs are of shape (batch_size, num_atoms)
+        agent = DistributionalAgent(None, None,
+                                    v_min=v_min, v_max=v_max, num_atoms=num_atoms,
+                                    gamma=gamma, target_update_freq=target_update_freq,
+                                    pretrained_model=model)
         return agent
 

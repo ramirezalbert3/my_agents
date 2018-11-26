@@ -1,3 +1,6 @@
 *.kdev4
 *.mypy*
 *.h5
+.idea/
+*__py*
+callgrind.out

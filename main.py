@@ -1,5 +1,4 @@
 import gym
-import numpy as np
 from gym import logger
 from agents.dqn_agent import DQNAgent
 from agents.ddqn_agent import DDQNAgent

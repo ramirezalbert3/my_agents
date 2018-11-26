@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from gym import logger
 
-'''
+"""
 Got the idea from:
 T. Schaul 2015: https://arxiv.org/pdf/1511.05952.pdf
 to train every X number of steps instead of:
@@ -14,7 +14,7 @@ This is better because:
 - training decoupled from env.steps, we can do this because we learn from memory
 - we can tune train frequency which is computationally intensive
 - agents do not to keep track of trained steps, as it is fed to train()
-'''
+"""
 
 def constant_decay_epsilon(epoch: int,
                            initial_epsilon: float = 1,
@@ -40,7 +40,7 @@ class Runner:
         self._train_steps = 0
     
     def warm_up(self, num_steps: int = 128):
-        ''' "warm-up" agents by initially populating memories with random actions '''
+        """ "warm-up" agents by initially populating memories with random actions """
         state = self._env.reset()
         for s in range(num_steps):
                 action = self._env.action_space.sample()

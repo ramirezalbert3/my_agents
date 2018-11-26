@@ -11,11 +11,11 @@ class TableAgent:
                         for state in range(num_states)}
     
     def act(self, state: tuple):
-        ''' Get either a greedy action '''
+        """ Get either a greedy action """
         return self.policy(state)
     
     def process_observation(self, state: tuple, action: int, reward: float, next_state: tuple, done: bool):
-        ''' Online training performed with observation '''
+        """ Online training performed with observation """
         new_q = reward
         if not done:
             # q = immediate_reward + discounted playing 'perfectly' from now on
@@ -23,19 +23,19 @@ class TableAgent:
         self._q_impl[state][action] += self._alpha * (new_q - self.Q(state)[action])
     
     def train(self, step_num: int):
-        ''' Training is done on-line '''
+        """ Training is done on-line """
         pass
     
     def Q(self, state):
-        ''' value of any taken action in a given state and playing perfectly onwards '''
+        """ value of any taken action in a given state and playing perfectly onwards """
         return self._q_impl[state]
     
     def policy(self, state):
-        ''' optimal greedy action for a state '''
+        """ optimal greedy action for a state """
         return np.argmax(self.Q(state))
     
     def V(self, state):
-        ''' value of being in a given state (and playing perfectly onwards) '''
+        """ value of being in a given state (and playing perfectly onwards) """
         return np.max(self.Q(state))
     
     def print_q_map(self):
