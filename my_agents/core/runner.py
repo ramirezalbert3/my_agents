@@ -56,7 +56,7 @@ class Runner:
             epsilon = self._epsilon_policy(self._epochs_trained)
             t, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
             logger.info(
-                '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f}'
+                '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f} '
                 'Average steps/episode = {:5.1f} with {} aborted episodes'.format(
                     t, self._epochs_trained, epsilon, np.mean(rewards), np.mean(steps), aborted_episodes))
             self._epochs_trained += 1
@@ -65,7 +65,7 @@ class Runner:
     def demonstrate(self, num_episodes: int):
         t, rewards, steps, aborted_episodes = self.run_epoch(epsilon=0, num_episodes=num_episodes, training=False)
         logger.info(
-            '({:5.2f}s) ==> Demonstration over {:3d} episodes: Average reward/episode = {:5.2f}'
+            '({:5.2f}s) ==> Demonstration over {:3d} episodes: Average reward/episode = {:5.2f} '
             'Average steps/episode = {:5.1f} with {} aborted episodes'.format(
                 t, num_episodes, np.mean(rewards), np.mean(steps), aborted_episodes))
         return t, np.mean(rewards), np.mean(steps), aborted_episodes
