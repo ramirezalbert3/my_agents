@@ -178,7 +178,7 @@ class DistributionalAgent:
         self._z_impl.save(file_path)
     
     @staticmethod
-    def from_h5(file_path: str = 'dqn_agent.h5',
+    def from_h5(file_path: str = 'distributional_agent.h5',
                 v_min: float = 0, v_max: float = 1,
                 gamma: float = 0.9, target_update_freq: int = 200) -> 'DQNAgent':
         """ Load trained model from .h5 file """

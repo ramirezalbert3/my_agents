@@ -171,7 +171,7 @@ class NStepDDQNAgent:
         """ value of being in a batch of states (and playing perfectly onwards) """
         return np.max(self.Q(states, use_target), axis=1) # axis=0 is batch axis
     
-    def save(self, file_path: str = 'dqn_agent.h5') -> None:
+    def save(self, file_path: str = 'nstep_agent.h5') -> None:
         """ Save online trained model to .h5 file"""
         if not file_path.endswith('.h5'):
             file_path += '.h5'
