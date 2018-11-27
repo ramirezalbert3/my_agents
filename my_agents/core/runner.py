@@ -124,7 +124,7 @@ class Runner:
                 render = True
             r, done, step = self.run_episode(epsilon, training, render)
             if render_frequency != 0 and (i+1) % render_frequency == 0:
-                logger.info('Rendered example episode with reward: {:6.2f}'.format(r))
+                logger.info('Rendered example episode ({} steps) with reward: {:6.2f}'.format(step, r))
             rewards.append(r)
             steps.append(step)
             if not done:
