@@ -51,10 +51,11 @@ class Runner:
                 if done:
                     state = self._env.reset()
     
-    def train(self, num_epochs: int, num_episodes: int):
+    def train(self, num_epochs: int, num_episodes: int, render_frequency: int = 0):
         for _ in range(num_epochs):
             epsilon = self._epsilon_policy(self._epochs_trained)
-            t, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes, training=True)
+            t, rewards, steps, aborted_episodes = self.run_epoch(epsilon, num_episodes,
+                                                                 training=True, render_frequency=render_frequency)
             logger.info(
                 '({:5.2f}s) ==> Epoch {:2d}: epsilon = {:4.2f} Average reward/episode = {:5.2f} '
                 'Average steps/episode = {:5.1f} with {} aborted episodes'.format(
@@ -107,16 +108,23 @@ class Runner:
                                                   'steps': step+1,
                                                   'aborted': not done,
                                                   'loss': np.mean(h.history['loss'])},  # mean across num_epochs
-                                                ignore_index=True)
+                                                 ignore_index=True)
         return total_reward, done, step+1
     
-    def run_epoch(self, epsilon: float, num_episodes: int, training: bool = True, render: bool = False):
+    def run_epoch(self, epsilon: float, num_episodes: int, training: bool = True, render_frequency: int = 0):
         rewards = []
         steps = []
         aborted_episodes = 0
         start = time.time()
+        if render_frequency > num_episodes:
+            logger.warn('render_frequency: {} >= num_episodes: {}'.format(render_frequency, num_episodes))
         for i in range(num_episodes):
+            render = False
+            if render_frequency != 0 and (i+1) % render_frequency == 0:
+                render = True
             r, done, step = self.run_episode(epsilon, training, render)
+            if render_frequency != 0 and (i+1) % render_frequency == 0:
+                logger.info('Rendered example episode with reward: {:6.2f}'.format(r))
             rewards.append(r)
             steps.append(step)
             if not done:

@@ -9,14 +9,16 @@ from core.states import StateSerializer
 from core.runner import constant_decay_epsilon, Runner
 from core.visualization import rolling_mean
 
+'''
 try:
     import yappi
 except:
     pass
+'''
 
 logger.set_level(logger.INFO)
 
-env_name = 'CartPole-v0' # 'CartPole-v0'  'Taxi-v2'    'FrozenLake-v0'
+env_name = 'CartPole-v0'  # 'CartPole-v0'  'Taxi-v2'    'FrozenLake-v0'
 env = gym.make(env_name)
 env.seed(0)
 
@@ -24,13 +26,13 @@ serializer = StateSerializer(env.observation_space.shape)
 # serializer = StateSerializer.from_num_states(env.observation_space.n)
 
 # agent = DQNAgent(env.action_space.n, serializer.shape, gamma=0.85)
-# agent = DDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
+agent = DDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
 # agent = PrioritizedDDQNAgent(env.action_space.n, serializer.shape, gamma=0.95)
-agent = NStepDDQNAgent(env.action_space.n, serializer.shape, update_horizon=3, gamma=0.95)
+# agent = NStepDDQNAgent(env.action_space.n, serializer.shape, update_horizon=3, gamma=0.95)
 # agent = DistributionalAgent(env.action_space.n, serializer.shape, v_min=0, v_max=100, num_atoms=51, gamma=0.95)
 # agent = DQNAgent.from_h5(file_path=env_name+'.h5', gamma=0.9)
 
-epochs = 15
+epochs = 10
 episodes = 200
 
 try:
@@ -41,12 +43,12 @@ except:
     pass
 
 runner = Runner(env, serializer, agent,
-                epsilon_policy = lambda e: constant_decay_epsilon(e,
-                                                                  initial_epsilon=1,
-                                                                  decay_rate=0.75,
-                                                                  min_epsilon=0.01),
+                epsilon_policy=lambda e: constant_decay_epsilon(e,
+                                                                initial_epsilon=1,
+                                                                decay_rate=0.75,
+                                                                min_epsilon=0.01),
                 training_period=50,
-                max_episode_steps = 200)
+                max_episode_steps=200)
 
 runner.warm_up()
 history = runner.train(epochs, episodes)
@@ -63,4 +65,3 @@ results = runner.demonstrate(num_episodes=100)
 rolling_mean([history['reward'], history['loss']])
 
 agent.save(env_name)
-
