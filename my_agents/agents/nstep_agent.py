@@ -1,6 +1,5 @@
 from collections import deque
 from typing import Tuple
-import random
 import numpy as np
 from gym import logger
 from tensorflow import keras
@@ -92,6 +91,7 @@ class NStepDDQNAgent:
             logger.warning('Cant train on an empty memory, warm-up the agent!')
             return
 
+        # TODO: split in functionality between _sample_nand _observations_to_train is not clear
         states, actions, rewards, next_states, dones, gammas = self._sample_n_transitions(batch_size)
         states, target_qs = self._observations_to_train_data(np.array(states),
                                                              np.array(actions),

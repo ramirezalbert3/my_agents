@@ -17,8 +17,8 @@ from tensorflow import keras
 
 
 def build_distributional_network(num_actions: int, state_shape: tuple, num_atoms: int, hidden_layers: list = [24, 24]):
-    inputs = keras.layers.Input(shape=state_shape, name='input') 
-    
+    inputs = keras.layers.Input(shape=state_shape, name='input')
+
     for idx, val in enumerate(hidden_layers):
         if idx == 0:
             hidden = keras.layers.Dense(val, activation='relu', name='hidden_layer_{}'.format(idx))(inputs)
@@ -42,19 +42,19 @@ class DistributionalAgent:
     states need to be properly conditioned for the agent before being used
     this implements the target_Q vs online_Q as per [1] and [3]
     """
-    
+
     class Distribution:
         def __init__(self, v_min: float, v_max: float, num_atoms: int):
             self.v_min = v_min
             self.v_max = v_max
             self.num_atoms = num_atoms
-            self.delta_z = (v_max - v_min) / float(num_atoms-1)
+            self.delta_z = (v_max - v_min) / float(num_atoms - 1)
             self.z = np.array([v_min + i * self.delta_z for i in range(num_atoms)])
-        
+
         def project_to_distribution(self, values):
             """ project values to distribution (Vmin, Vmax, num_atoms) """
-            Tz = np.clip(values, self.v_min, self.v_max)
-            bj = (Tz - self.v_min) / self.delta_z
+            tz = np.clip(values, self.v_min, self.v_max)
+            bj = (tz - self.v_min) / self.delta_z
             m_l, m_u = np.floor(bj).astype(int), np.ceil(bj).astype(int)
             return bj, m_l, m_u
 
@@ -66,15 +66,15 @@ class DistributionalAgent:
             self._z_impl = prebuilt_model
         else:
             self._z_impl = build_distributional_network(num_actions, state_shape, num_atoms)
-        
+
         # Start target network = to online network
         self._target_z_impl = keras.models.Model.from_config(self._z_impl.get_config())
         self._update_target_model()
-        
+
         self._target_update_freq = target_update_freq
         self._gamma = gamma
         self._memory = deque(maxlen=2000)
-        
+
         self._distribution = DistributionalAgent.Distribution(v_min=v_min, v_max=v_max, num_atoms=num_atoms)
 
     def act(self, state: np.ndarray) -> int:
@@ -91,7 +91,7 @@ class DistributionalAgent:
         if len(self._memory) <= batch_size:
             logger.warning('Cant train on an empty memory, warm-up the agent!')
             return
-        
+
         minibatch = random.sample(self._memory, batch_size)
         states, actions, rewards, next_states, dones = zip(*minibatch)
         states, target_zs = self._observations_to_train_data(np.array(states),
@@ -99,36 +99,36 @@ class DistributionalAgent:
                                                              np.array(rewards),
                                                              np.array(next_states),
                                                              np.array(dones))
-        
+
         result = self._z_impl.fit(states, target_zs, batch_size=batch_size, epochs=epochs, verbose=0)
-        
+
         if step_num % self._target_update_freq == 0:
             self._update_target_model()
-        
+
         return result
-    
+
     def _update_target_model(self):
         self._target_z_impl.set_weights(self._z_impl.get_weights())
-        
+
     def _observations_to_train_data(self, states: np.ndarray, actions: np.ndarray, rewards: np.ndarray,
                                     next_states: np.ndarray, dones: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """ get states observations, rewards and action and return X, y for training """
-        assert(states.shape == next_states.shape)
-        assert(actions.shape == rewards.shape == dones.shape)
-        assert(len(states) == len(actions))
-        
+        assert (states.shape == next_states.shape)
+        assert (actions.shape == rewards.shape == dones.shape)
+        assert (len(states) == len(actions))
+
         next_zs = self.Z(next_states)
         batch_size, num_actions, num_atoms = len(actions), len(next_zs), self._distribution.num_atoms
-        
+
         # Vectorization
         rew_mat = np.repeat(rewards, num_atoms).reshape((batch_size, num_atoms), order='C')
         done_mat = np.repeat(dones, num_atoms).reshape((batch_size, num_atoms), order='C')
         z_mat = np.repeat(self._distribution.z, batch_size).reshape((batch_size, num_atoms), order='F')
-        targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_mat # (batch_size, num_atoms)
+        targets = rew_mat + np.logical_not(done_mat) * self._gamma * z_mat  # (batch_size, num_atoms)
         bj, m_l, m_u = self._distribution.project_to_distribution(targets)
-        
+
         m_prob = np.zeros((num_actions, batch_size, num_atoms))
-        
+
         # TODO: not sure if its possible to vectorize a little bit
         #       maybe we can vectorize a bit if there are no 'repeated' X (if len(set(X))==len(X))
         #       X being actions, m_l and m_u --> we can do these computations in a matrix
@@ -140,35 +140,35 @@ class DistributionalAgent:
                 m_prob[actions[i], i, m_l[i, j]] += res1[i, j]
                 m_prob[actions[i], i, m_u[i, j]] += res2[i, j]
         m_prob = np.vsplit(m_prob, num_actions)  # split into n_actions-long list
-        m_prob = [np.squeeze(x) for x in m_prob] # remove 1-dims leftovers, keep as list
+        m_prob = [np.squeeze(x) for x in m_prob]  # remove 1-dims leftovers, keep as list
         return states, m_prob
-    
+
     def Z(self, states: np.ndarray) -> np.ndarray:
         """ distributions for actions in a batch of states """
-        if len(states.shape) ==  1:
+        if len(states.shape) == 1:
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
-        return np.array(self._target_z_impl.predict(states)) # (num_actions, batch_size, num_atoms)
-    
+        return np.array(self._target_z_impl.predict(states))  # (num_actions, batch_size, num_atoms)
+
     def Q(self, states: np.ndarray) -> np.ndarray:
         """ value of any taken action in a batch of states and playing perfectly onwards """
         z = self.Z(states)
-        if len(states.shape) ==  1:
+        if len(states.shape) == 1:
             # TODO: should not be necessary to run twice
             # we're evaluating a single example -> make batch_size = 1
             states = states[np.newaxis]
-        q_shape = len(states), len(z) # (batch_size, num_actions)
-        z = np.vstack(z) # (batch_size * num_actions, num_atoms)
+        q_shape = len(states), len(z)  # (batch_size, num_actions)
+        z = np.vstack(z)  # (batch_size * num_actions, num_atoms)
         q = np.sum(np.multiply(z, self._distribution.z), axis=1).reshape(q_shape, order='F')
         return q
-    
+
     def policy(self, states: np.ndarray) -> int:
         """ optimal greedy action for a batch of states """
-        return np.argmax(self.Q(states), axis=1) # axis=0 is batch axis
-    
+        return np.argmax(self.Q(states), axis=1)  # axis=0 is batch axis
+
     def V(self, states: np.ndarray) -> float:
         """ value of being in a batch of states (and playing perfectly onwards) """
-        return np.max(self.Q(states), axis=1) # axis=0 is batch axis
+        return np.max(self.Q(states), axis=1)  # axis=0 is batch axis
 
     def save(self, file_path: str = 'distributional_agent.h5') -> None:
         """ Save online trained model to .h5 file"""
@@ -176,7 +176,7 @@ class DistributionalAgent:
             file_path += '.h5'
         logger.info('Saving agent to: ' + file_path)
         self._z_impl.save(file_path)
-    
+
     @staticmethod
     def from_h5(file_path: str = 'distributional_agent.h5',
                 v_min: float = 0, v_max: float = 1,
@@ -185,11 +185,10 @@ class DistributionalAgent:
         logger.info('Loading agent from: ' + file_path)
         model = keras.models.load_model(file_path)
         output_shape = model.output_shape
-        assert(len(set(output_shape)) == 1)  # assert all n_actions output shapes are equal, thus len of the set is 1
-        num_atoms = output_shape[0][1]       # all outputs are of shape (batch_size, num_atoms)
+        assert (len(set(output_shape)) == 1)  # assert all n_actions output shapes are equal, thus len of the set is 1
+        num_atoms = output_shape[0][1]  # all outputs are of shape (batch_size, num_atoms)
         agent = DistributionalAgent(None, None,
                                     v_min=v_min, v_max=v_max, num_atoms=num_atoms,
                                     gamma=gamma, target_update_freq=target_update_freq,
                                     prebuilt_model=model)
         return agent
-

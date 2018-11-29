@@ -1,9 +1,8 @@
 from typing import Tuple
-import random
 import numpy as np
 from gym import logger
 from tensorflow import keras
-from agents.prioritized_memory import PrioritizedMemory
+from my_agents.agents.prioritized_memory import PrioritizedMemory
 
 """
 # References
