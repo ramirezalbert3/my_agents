@@ -61,9 +61,9 @@ class DistributionalAgent:
     def __init__(self, num_actions: int, state_shape: tuple,
                  v_min: float, v_max: float, num_atoms: int = 21,
                  gamma: float = 0.9, target_update_freq: int = 200,
-                 pretrained_model: keras.models.Model = None) -> None:
-        if pretrained_model is not None:
-            self._z_impl = pretrained_model
+                 prebuilt_model: keras.models.Model = None) -> None:
+        if prebuilt_model is not None:
+            self._z_impl = prebuilt_model
         else:
             self._z_impl = build_distributional_network(num_actions, state_shape, num_atoms)
         
@@ -190,6 +190,6 @@ class DistributionalAgent:
         agent = DistributionalAgent(None, None,
                                     v_min=v_min, v_max=v_max, num_atoms=num_atoms,
                                     gamma=gamma, target_update_freq=target_update_freq,
-                                    pretrained_model=model)
+                                    prebuilt_model=model)
         return agent
 
