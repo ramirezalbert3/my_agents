@@ -46,10 +46,10 @@ class Runner:
         state = self._env.reset()
         for s in range(num_steps):
             action = self._env.action_space.sample()
-            previous_state = state
-            state, reward, done, _ = self._env.step(action)
-            self._agent.process_observation(self._serializer.serialize(previous_state), action,
-                                            reward, self._serializer.serialize(state), done)
+            next_state, reward, done, _ = self._env.step(action)
+            self._agent.process_observation(self._serializer.serialize(state), action,
+                                            reward, self._serializer.serialize(next_state), done)
+            state = next_state
             if done:
                 state = self._env.reset()
 
@@ -93,12 +93,11 @@ class Runner:
             action = self._agent.act(self._serializer.serialize(state))
             if random.random() < epsilon:
                 action = self._env.action_space.sample()
-            previous_state = state
-            state, reward, done, _ = self._env.step(action)
+            next_state, reward, done, _ = self._env.step(action)
             total_reward += reward
             if training:
-                self._agent.process_observation(self._serializer.serialize(previous_state), action,
-                                                reward, self._serializer.serialize(state), done)
+                self._agent.process_observation(self._serializer.serialize(state), action,
+                                                reward, self._serializer.serialize(next_state), done)
                 self._train_steps += 1
                 if self._train_steps % self._train_period == 0:
                     h = self._agent.train(self._train_steps)
@@ -106,6 +105,7 @@ class Runner:
                 self._env.render()
             if done:
                 break
+            state = next_state
         if training and h is not None:
             self._history = self._history.append({'epsilon': epsilon,
                                                   'reward': total_reward,
