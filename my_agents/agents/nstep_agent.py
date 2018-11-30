@@ -63,6 +63,9 @@ class NStepDDQNAgent:
                  target_update_freq: int = 200,
                  prebuilt_model: keras.models.Sequential = None) -> None:
         if prebuilt_model is not None:
+            if num_actions is not None or state_shape is not None:
+                logger.warn('Provided num_actions and state_shape are not used when passing a prebuilt model.'
+                            'Set them to None for clarity')
             self._q_impl = prebuilt_model
         else:
             self._q_impl = build_dense_network(num_actions, state_shape)

@@ -63,6 +63,9 @@ class DistributionalAgent:
                  gamma: float = 0.9, target_update_freq: int = 200,
                  prebuilt_model: keras.models.Model = None) -> None:
         if prebuilt_model is not None:
+            if num_actions is not None or state_shape is not None:
+                logger.warn('Provided num_actions and state_shape are not used when passing a prebuilt model.'
+                            'Set them to None for clarity')
             self._z_impl = prebuilt_model
         else:
             self._z_impl = build_distributional_network(num_actions, state_shape, num_atoms)
