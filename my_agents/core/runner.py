@@ -76,8 +76,9 @@ class Runner:
         return t, np.mean(rewards), np.mean(steps), aborted_episodes
 
     def render(self):
-        total_reward, done, steps = self.run_episode(epsilon=0, training=False, render=True)
-        return total_reward, done, steps
+        reward, done, steps = self.run_episode(epsilon=0, training=False, render=True)
+        logger.info('Rendered episode ({} steps) with reward: {:6.2f}'.format(steps, reward))
+        return reward, done, steps
 
     @property
     def history(self):
