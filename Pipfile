@@ -4,7 +4,7 @@ name = "pypi"
 url = "https://pypi.org/simple"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
 
 [packages]
 gym = "*"
@@ -16,3 +16,5 @@ seaborn = "*"
 [dev-packages]
 mypy = "*"
 yappi = "*"
+pylint = "*"
+autopep8 = "*"
